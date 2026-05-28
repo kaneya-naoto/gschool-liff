@@ -264,6 +264,23 @@
       if (kind === 'error') renderDebugPanel(true);
     }
 
+    function userFacingError(err) {
+      const message = (err && err.message) || String(err || '');
+      if (
+        message.indexOf('タイムアウト') >= 0 ||
+        message.indexOf('Failed to fetch') >= 0 ||
+        message.indexOf('NetworkError') >= 0 ||
+        message.indexOf('LIFF APIの応答を読み取れません') >= 0
+      ) {
+        return [
+          '通信に失敗しました。',
+          '電波状況を確認して、LINEアプリからもう一度開き直してください。',
+          '何度も出る場合は、管理者にこの画面の内容を共有してください。',
+        ].join('\n');
+      }
+      return message || '処理中にエラーが発生しました。時間をおいて開き直してください。';
+    }
+
     function debugBase() {
       return {
         href: location.href,
@@ -373,14 +390,14 @@
     function registrationMessage(identity) {
       if (identity && identity.registered && !identity.active) {
         return [
-          '登録申請は受け付け済みです。',
-          '管理者の確認が終わると、この画面で担当作業を確認できるようになります。',
-          'しばらくしてから開き直してください。',
+          '登録申請は送信済みです。',
+          '管理者が確認すると、この画面で今日やることを見られるようになります。',
+          'しばらくしてからLINEアプリで開き直してください。',
         ].filter(Boolean).join('\n');
       }
       return [
-        'このLINEアカウントは、まだ利用登録されていません。',
-        '下のボタンから利用登録を申請してください。',
+        'このLINEアカウントはまだ利用登録されていません。',
+        '下のボタンから申請してください。管理者の確認後に使えるようになります。',
       ].filter(Boolean).join('\n');
     }
 
@@ -392,7 +409,7 @@
       el('casesView').hidden = true;
       el('detailView').hidden = true;
       el('todayView').innerHTML = identity && identity.registered
-        ? '<div class="empty">管理者の確認待ちです。</div>'
+        ? '<div class="empty">管理者の確認待ちです。確認が終わると、今日やることがここに表示されます。</div>'
         : `
           <div class="actions">
             <button class="primary" type="button" data-request-registration="1">利用登録を申請する</button>
@@ -511,7 +528,7 @@
       document.querySelector('h1').textContent = '今日やること';
       el('todayView').innerHTML = todayTasks.length
         ? todayTasks.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
-        : '<div class="empty">今すぐ対応が必要な作業はありません。</div>';
+        : '<div class="empty">今日すぐ対応が必要な作業はありません。担当中の案件は「担当案件」から確認できます。</div>';
     }
 
     function renderCases() {
@@ -524,7 +541,7 @@
       document.querySelector('h1').textContent = '担当案件';
       el('casesView').innerHTML = cases.length
         ? cases.map(caseCard).join('')
-        : '<div class="empty">表示できる担当案件はありません。</div>';
+        : '<div class="empty">表示できる担当案件はまだありません。案件が割り当てられると、ここに表示されます。</div>';
     }
 
     async function renderDetail(caseId, taskId = '') {
@@ -595,7 +612,7 @@
         else if (button.dataset.reopen) await completeTask(button.dataset.reopen, true);
         else if (button.dataset.requestRegistration) await requestRegistration();
       } catch (err) {
-        showMessage(err.message || String(err), true);
+        showMessage(userFacingError(err), true);
       }
     });
 
@@ -664,7 +681,7 @@
           level: 'ERROR',
           error: err.message || String(err),
         });
-        showMessage(err.message || String(err), true);
+        showMessage(userFacingError(err), true);
         el('todayView').innerHTML = '';
       }
     }
