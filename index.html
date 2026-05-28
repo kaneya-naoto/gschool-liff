@@ -54,41 +54,13 @@
       padding: 12px;
     }
     .home-summary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 10px;
-    }
-    .summary-item,
-    .metric {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
-      padding: 9px;
-      min-width: 0;
-    }
-    .metric.danger {
-      border-color: #f2c0c0;
-      color: var(--danger);
-      background: #fff7f7;
-    }
-    .summary-item b,
-    .metric b {
-      display: block;
-      font-size: 18px;
-      line-height: 1.1;
-    }
-    .summary-item span,
-    .metric span {
-      display: block;
-      margin-top: 2px;
       color: var(--muted);
       font-size: 11px;
-    }
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      font-weight: 700;
     }
     .home-panel {
       display: grid;
@@ -131,6 +103,28 @@
       gap: 6px;
       color: var(--muted);
       font-size: 12px;
+    }
+    .home-brief {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .home-brief span,
+    .summary-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border-radius: 999px;
+      background: #eef1f5;
+      color: #495267;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .home-brief .danger,
+    .summary-pill.danger {
+      background: #fff3d8;
+      color: var(--warn);
     }
     .section-title {
       display: flex;
@@ -267,6 +261,17 @@
     }
     .task-compact .actions {
       margin-top: 8px;
+    }
+    .task-extra {
+      margin-top: 8px;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+    }
+    .task-extra summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
     }
     .form {
       display: grid;
@@ -449,6 +454,9 @@
     .advanced-fields .field-grid {
       padding: 0 10px 10px;
     }
+    .advanced-fields > .card {
+      margin: 0 10px 10px;
+    }
     .bottom-menu {
       position: fixed;
       left: 0;
@@ -456,7 +464,7 @@
       bottom: 0;
       z-index: 8;
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 1px;
       border-top: 1px solid var(--line);
       background: var(--line);
@@ -586,8 +594,6 @@
     <section id="todayView" class="stack"></section>
     <section id="casesView" class="stack" hidden></section>
     <section id="calendarView" class="stack" hidden></section>
-    <section id="monthlyView" class="stack" hidden></section>
-    <section id="alertsView" class="stack" hidden></section>
     <section id="settingsView" class="stack" hidden></section>
     <section id="detailView" class="stack" hidden></section>
     <details id="debugPanel" class="debug" hidden>
@@ -604,9 +610,7 @@
   <nav class="bottom-menu" aria-label="Gスクイールメニュー">
     <button class="menu-btn active" type="button" data-view="today"><b>今</b>今日</button>
     <button class="menu-btn" type="button" data-view="cases"><b>件</b>案件</button>
-    <button class="menu-btn" type="button" data-view="calendar"><b>予</b>予定</button>
-    <button class="menu-btn" type="button" data-view="monthly"><b>月</b>月次</button>
-    <button class="menu-btn" type="button" data-view="alerts"><b>注</b>アラート</button>
+    <button class="menu-btn" type="button" data-view="calendar"><b>予</b>予定表</button>
     <button class="menu-btn" type="button" data-view="settings"><b>設</b>設定</button>
   </nav>
 
@@ -618,8 +622,6 @@
     let todayTasks = [];
     let cases = [];
     let calendarItems = [];
-    let monthlySummary = null;
-    let alertsSummary = null;
     let adminOptions = null;
     let previewUserId = '';
     let previewInfo = null;
@@ -642,17 +644,13 @@
       todayTasks: true,
       listCases: true,
       calendar: true,
-      monthlySummary: true,
-      alertsSummary: true,
       getCase: true,
       adminOptions: true,
     };
     const VIEW_TITLES = {
       today: '今日やること',
       cases: '担当案件',
-      calendar: '予定',
-      monthly: '月次確認',
-      alerts: 'アラート',
+      calendar: '予定表',
       settings: '設定',
     };
     const DATE_FIELD_OPTIONS = [
@@ -956,15 +954,13 @@
       el('todayView').hidden = false;
       el('casesView').hidden = true;
       el('calendarView').hidden = true;
-      el('monthlyView').hidden = true;
-      el('alertsView').hidden = true;
       el('settingsView').hidden = true;
       el('detailView').hidden = true;
       el('todayView').innerHTML = `<div class="loading">${escapeHtml(text || '読み込み中です。')}</div>`;
     }
 
     function allViews() {
-      return ['today', 'cases', 'calendar', 'monthly', 'alerts', 'settings'];
+      return ['today', 'cases', 'calendar', 'settings'];
     }
 
     function setActiveMenu(view) {
@@ -983,6 +979,7 @@
       activeCaseId = '';
       setActiveMenu(view);
       document.querySelector('h1').textContent = VIEW_TITLES[view] || 'マイページ';
+      updateHomeSummary();
     }
 
     function updateHomeSummary() {
@@ -996,12 +993,12 @@
       const caseCount = summary.caseCount !== undefined ? summary.caseCount : cases.length;
       const alertCount = summary.alertCount !== undefined
         ? summary.alertCount
-        : (alertsSummary ? alertsSummary.alertCount : 0);
-      node.hidden = false;
+        : todayTasks.filter((task) => !task.completed && (task.status === '期限超過' || task.status === '期限接近')).length;
+      node.hidden = currentView === 'today';
       node.innerHTML = `
-        <div class="summary-item"><b>${escapeHtml(todayCount)}</b><span>今日</span></div>
-        <div class="summary-item"><b>${escapeHtml(caseCount)}</b><span>案件</span></div>
-        <div class="summary-item"><b>${escapeHtml(alertCount)}</b><span>注意</span></div>
+        <span class="summary-pill">今日 ${escapeHtml(todayCount)}</span>
+        <span class="summary-pill${alertCount ? ' danger' : ''}">注意 ${escapeHtml(alertCount)}</span>
+        <span class="summary-pill">案件 ${escapeHtml(caseCount)}</span>
       `;
     }
 
@@ -1074,8 +1071,6 @@
       el('todayView').hidden = false;
       el('casesView').hidden = true;
       el('calendarView').hidden = true;
-      el('monthlyView').hidden = true;
-      el('alertsView').hidden = true;
       el('settingsView').hidden = true;
       el('detailView').hidden = true;
       el('todayView').innerHTML = identity && identity.registered
@@ -1172,27 +1167,26 @@
     function taskCard(task, options = {}) {
       const focus = options.focus ? ' focus' : '';
       const compact = options.compact ? ' task-compact' : '';
-      const rows = options.compact
-        ? `
-          <div class="row"><b>案件</b><span>${escapeHtml(task.caseTitle)}</span></div>
-          ${task.note ? `<div class="row"><b>メモ</b><span>${escapeHtml(task.note)}</span></div>` : ''}
-        `
-        : `
-          <div class="row"><b>案件</b><span>${escapeHtml(task.caseTitle)}</span></div>
-          ${task.locationName ? `<div class="row"><b>場所</b><span>${escapeHtml(task.locationName)}</span></div>` : ''}
-          ${task.targetName ? `<div class="row"><b>対象</b><span>${escapeHtml(task.targetName)}</span></div>` : ''}
-          ${task.vendorName ? `<div class="row"><b>手配先</b><span>${escapeHtml(task.vendorName)}</span></div>` : ''}
-          ${task.note ? `<div class="row"><b>メモ</b><span>${escapeHtml(task.note)}</span></div>` : ''}
-        `;
+      const details = [
+        task.locationName ? `<div class="row"><b>場所</b><span>${escapeHtml(task.locationName)}</span></div>` : '',
+        task.targetName ? `<div class="row"><b>対象</b><span>${escapeHtml(task.targetName)}</span></div>` : '',
+        task.vendorName ? `<div class="row"><b>手配先</b><span>${escapeHtml(task.vendorName)}</span></div>` : '',
+        task.note ? `<div class="row"><b>メモ</b><span>${escapeHtml(task.note)}</span></div>` : '',
+      ].filter(Boolean).join('');
+      const meta = [
+        `<span class="badge ${badgeClass(task.status)}">${escapeHtml(task.status)}</span>`,
+        `<span>${escapeHtml(task.dueDate || '期日未設定')}</span>`,
+        options.compact ? '' : `<span>${escapeHtml(task.assignee || '担当未設定')}</span>`,
+      ].filter(Boolean).join('');
+      const detailBlock = details && !options.compact
+        ? `<details class="task-extra"><summary>詳細</summary>${details}</details>`
+        : '';
       return `
         <article id="task-${escapeHtml(task.taskId)}" class="card${compact}${focus}">
           <p class="title">${escapeHtml(task.taskName)}</p>
-          <div class="meta">
-            <span class="badge ${badgeClass(task.status)}">${escapeHtml(task.status)}</span>
-            <span>${escapeHtml(task.dueDate || '期日未設定')}</span>
-            <span>${escapeHtml(task.assignee || '担当未設定')}</span>
-          </div>
-          ${rows}
+          <div class="meta">${meta}</div>
+          <p class="subtle">${escapeHtml(task.caseTitle)}</p>
+          ${detailBlock}
           <div class="actions">${taskActionButtons(task)}</div>
         </article>
       `;
@@ -1272,11 +1266,10 @@
       return `
         <section class="home-panel">
           ${hero}
-          <div class="metric-grid">
-            ${summaryMetric('今日の対応', todayCount)}
-            ${summaryMetric('期限注意', alertCount, alertCount ? 'danger' : '')}
-            ${summaryMetric('担当案件', caseCount)}
-            ${summaryMetric('期限超過', overdueCount, overdueCount ? 'danger' : '')}
+          <div class="home-brief" aria-label="担当状況の要約">
+            <span>今日 ${escapeHtml(todayCount)}</span>
+            <span class="${alertCount ? 'danger' : ''}">注意 ${escapeHtml(alertCount)}${overdueCount ? ` / 超過 ${escapeHtml(overdueCount)}` : ''}</span>
+            <span>案件 ${escapeHtml(caseCount)}</span>
           </div>
         </section>
       `;
@@ -1415,55 +1408,6 @@
       `;
     }
 
-    function summaryMetric(label, value, className = '') {
-      return `<div class="metric ${className}"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`;
-    }
-
-    function renderMonthly() {
-      showOnly('monthly');
-      const s = monthlySummary || {};
-      const metrics = [
-        summaryMetric('案件', s.caseCount || 0),
-        summaryMetric('未完了', s.incompleteCount || 0),
-        summaryMetric('期限超過', s.overdueCount || 0),
-        summaryMetric('期限接近', s.approachingCount || 0),
-        summaryMetric('完了', s.completedCount || 0),
-        summaryMetric('工程', s.taskCount || 0),
-      ].join('');
-      const items = (s.items || []).length
-        ? (s.items || []).map((task) => taskCard(task)).join('')
-        : '<div class="empty">この月の担当予定はありません。</div>';
-      el('monthlyView').innerHTML = `
-        ${previewNoticeHtml()}
-        <article class="card">
-          <p class="title">${escapeHtml(s.monthLabel || '月次確認')}</p>
-          <div class="metric-grid">${metrics}</div>
-        </article>
-        ${items}
-      `;
-    }
-
-    function renderAlerts() {
-      showOnly('alerts');
-      const s = alertsSummary || {};
-      const metrics = [
-        summaryMetric('期限超過', s.overdueCount || 0, 'danger'),
-        summaryMetric('期限接近', s.approachingCount || 0),
-        summaryMetric('社長確認', s.presidentCheckCount || 0),
-      ].join('');
-      const items = (s.items || []).length
-        ? (s.items || []).map((task) => taskCard(task)).join('')
-        : '<div class="empty">現在の要注意作業はありません。</div>';
-      el('alertsView').innerHTML = `
-        ${previewNoticeHtml()}
-        <article class="card">
-          <p class="title">アラート</p>
-          <div class="metric-grid">${metrics}</div>
-        </article>
-        ${items}
-      `;
-    }
-
     function adminUserOptions(selected) {
       const users = (adminOptions && adminOptions.users) || [];
       return optionList(users.map((user) => ({
@@ -1586,15 +1530,15 @@
 
     function adminMenuHtml() {
       if (!isAdminUser() || !adminOptions) return '';
-      const items = [
-        adminCaseForm(),
-        adminSampleCard(),
-        adminPreviewCard(),
-      ].filter(Boolean).join('');
+      const tools = [adminSampleCard(), adminPreviewCard()].filter(Boolean).join('');
+      const toolsBlock = tools
+        ? `<details class="advanced-fields"><summary>検証・表示確認</summary>${tools}</details>`
+        : '';
+      const items = [adminCaseForm(), toolsBlock].filter(Boolean).join('');
       if (!items) return '';
       return `
         <details class="admin-menu">
-          <summary>管理者メニュー<small>案件作成 / TEST / 担当者プレビュー</small></summary>
+          <summary>管理者メニュー<small>必要な時だけ開く</small></summary>
           <div class="admin-menu-body">${items}</div>
         </details>
       `;
@@ -1620,8 +1564,6 @@
     function renderView(view) {
       if (view === 'cases') renderCases();
       else if (view === 'calendar') renderCalendar();
-      else if (view === 'monthly') renderMonthly();
-      else if (view === 'alerts') renderAlerts();
       else if (view === 'settings') renderSettings();
       else renderToday();
       hideLoadingOverlay();
@@ -1635,8 +1577,6 @@
       el('todayView').hidden = true;
       el('casesView').hidden = true;
       el('calendarView').hidden = true;
-      el('monthlyView').hidden = true;
-      el('alertsView').hidden = true;
       el('settingsView').hidden = true;
       el('detailView').hidden = false;
       setActiveMenu('');
@@ -1655,8 +1595,6 @@
       if (Object.prototype.hasOwnProperty.call(payload, 'todayTasks')) todayTasks = payload.todayTasks || [];
       if (Object.prototype.hasOwnProperty.call(payload, 'cases')) cases = payload.cases || [];
       if (Object.prototype.hasOwnProperty.call(payload, 'calendarItems')) calendarItems = payload.calendarItems || [];
-      if (Object.prototype.hasOwnProperty.call(payload, 'monthlySummary')) monthlySummary = payload.monthlySummary || null;
-      if (Object.prototype.hasOwnProperty.call(payload, 'alertsSummary')) alertsSummary = payload.alertsSummary || null;
       if (Object.prototype.hasOwnProperty.call(payload, 'adminOptions')) adminOptions = payload.adminOptions || null;
       if (view) loadedViews[view] = true;
       updateUserLabel();
