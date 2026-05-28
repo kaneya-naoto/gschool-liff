@@ -281,8 +281,13 @@
             item.at,
             item.level || 'INFO',
             item.stage,
+            item.action ? `action=${item.action}` : '',
             item.message || item.error || '',
             item.transport ? `transport=${item.transport}` : '',
+            item.requested === true || item.requested === false ? `requested=${item.requested}` : '',
+            item.settingsRow ? `settingsRow=${item.settingsRow}` : '',
+            item.registered === true || item.registered === false ? `registered=${item.registered}` : '',
+            item.active === true || item.active === false ? `active=${item.active}` : '',
             item.lineUserId ? `lineUserId=${item.lineUserId}` : '',
           ].filter(Boolean);
           return parts.join(' | ');
@@ -431,6 +436,8 @@
         if (result.data && result.data.user) setUser(result.data.user);
         debugLog('api_success', {
           action,
+          requested: result.data && result.data.requested,
+          settingsRow: result.data && result.data.settingsRow,
           registered: result.data && result.data.registered,
           active: result.data && result.data.active,
           lineUserId: result.data && result.data.profile && result.data.profile.lineUserId,
@@ -555,6 +562,13 @@
     async function requestRegistration() {
       setLoading('登録申請を作成しています。');
       const result = await api('requestRegistration');
+      debugLog('registration_requested', {
+        requested: result && result.requested,
+        settingsRow: result && result.settingsRow,
+        registered: result && result.registered,
+        active: result && result.active,
+        lineUserId: result && result.profile && result.profile.lineUserId,
+      });
       if (result && result.registered && result.active) {
         if (result.user) setUser(result.user);
         setLoading('案件情報を読み込んでいます。');
@@ -562,8 +576,10 @@
         renderToday();
         return;
       }
-      if (result && result.profile) setLineProfile(result.profile, result.active ? '登録済み' : '有効化待ち');
-      showRegistration(result, result.message || '登録申請を作成しました。');
+      setLoading('登録申請を確認しています。');
+      const identity = await api('whoami');
+      if (identity && identity.profile) setLineProfile(identity.profile, identity.active ? '登録済み' : '有効化待ち');
+      showRegistration(identity, result.message || '登録申請を作成しました。');
     }
 
     document.addEventListener('click', async (event) => {
