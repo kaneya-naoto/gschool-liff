@@ -122,6 +122,19 @@
       color: var(--danger);
       background: #fff7f7;
     }
+    button:disabled,
+    input:disabled,
+    select:disabled,
+    textarea:disabled {
+      opacity: 0.58;
+      cursor: wait;
+    }
+    body.is-busy button,
+    body.is-busy input,
+    body.is-busy select,
+    body.is-busy textarea {
+      pointer-events: none;
+    }
     .stack {
       display: grid;
       gap: 10px;
@@ -295,6 +308,45 @@
       text-align: center;
       padding: 20px 0;
     }
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(247, 248, 250, 0.68);
+      backdrop-filter: blur(2px);
+    }
+    .loading-sheet {
+      width: min(300px, calc(100vw - 48px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 16px 44px rgba(36, 44, 56, 0.18);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #d6dde8;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      flex: none;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation: none; }
+    }
     .debug {
       margin-top: 12px;
       border: 1px dashed #b8c0cc;
@@ -338,6 +390,12 @@
       <pre id="debugLog"></pre>
     </details>
   </main>
+  <div id="loadingOverlay" class="loading-overlay" role="status" aria-live="polite" hidden>
+    <div class="loading-sheet">
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="loadingText">読み込み中です。</span>
+    </div>
+  </div>
   <nav class="bottom-menu" aria-label="Gスクイールメニュー">
     <button class="menu-btn active" type="button" data-view="today"><b>今</b>今日</button>
     <button class="menu-btn" type="button" data-view="cases"><b>件</b>案件</button>
@@ -362,6 +420,7 @@
     let previewInfo = null;
     let activeCaseId = '';
     let lastIdentity = null;
+    let interactionLocked = false;
 
     const el = (id) => document.getElementById(id);
     const qs = new URLSearchParams(location.search);
@@ -492,7 +551,102 @@
       }
     }
 
+    function buttonActionName(button) {
+      if (!button) return '';
+      if (button.dataset.case) return 'getCase';
+      if (button.dataset.complete) return 'completeTask';
+      if (button.dataset.reopen) return 'reopenTask';
+      if (button.dataset.requestRegistration) return 'requestRegistration';
+      if (button.dataset.applyPreview) return 'applyPreview';
+      if (button.dataset.clearPreview) return 'clearPreview';
+      if (button.dataset.setupTestSamples) return 'setupTestSamples';
+      if (button.dataset.cleanupTestSamples) return 'cleanupTestSamples';
+      if (button.dataset.createCase) return 'createCase';
+      return '';
+    }
+
+    function buttonBusyLabel(button) {
+      if (!button) return '';
+      if (button.dataset.case) return '読み込み中';
+      if (button.dataset.complete || button.dataset.reopen) return '更新中';
+      if (button.dataset.requestRegistration) return '申請中';
+      if (button.dataset.applyPreview || button.dataset.clearPreview) return '切替中';
+      if (button.dataset.setupTestSamples) return '作成中';
+      if (button.dataset.cleanupTestSamples) return '削除中';
+      if (button.dataset.createCase) return '作成中';
+      return '通信中';
+    }
+
+    function setControlsLocked(locked, sourceButton) {
+      document.body.classList.toggle('is-busy', locked);
+      document.querySelectorAll('button, input, select, textarea').forEach((control) => {
+        if (locked) {
+          if (!control.dataset.liffWasLocked) {
+            control.dataset.liffWasLocked = '1';
+            control.dataset.liffWasDisabled = control.disabled ? '1' : '0';
+          }
+          control.disabled = true;
+          return;
+        }
+        if (control.dataset.liffWasLocked === '1') {
+          control.disabled = control.dataset.liffWasDisabled === '1';
+          delete control.dataset.liffWasLocked;
+          delete control.dataset.liffWasDisabled;
+        }
+      });
+      if (sourceButton) {
+        sourceButton.setAttribute('aria-busy', locked ? 'true' : 'false');
+        if (locked) {
+          if (!sourceButton.dataset.liffOriginalText) {
+            sourceButton.dataset.liffOriginalText = sourceButton.textContent;
+          }
+          sourceButton.textContent = buttonBusyLabel(sourceButton);
+        } else if (sourceButton.dataset.liffOriginalText) {
+          sourceButton.textContent = sourceButton.dataset.liffOriginalText;
+          delete sourceButton.dataset.liffOriginalText;
+        }
+      }
+    }
+
+    function showLoadingOverlay(text) {
+      const overlay = el('loadingOverlay');
+      const label = el('loadingText');
+      if (!overlay || !label) return;
+      label.textContent = text || '読み込み中です。';
+      overlay.hidden = false;
+      document.body.setAttribute('aria-busy', 'true');
+    }
+
+    function hideLoadingOverlay() {
+      const overlay = el('loadingOverlay');
+      if (overlay) overlay.hidden = true;
+      document.body.removeAttribute('aria-busy');
+    }
+
+    function beginExclusiveAction(button) {
+      const action = buttonActionName(button);
+      if (!action) return false;
+      if (interactionLocked) {
+        debugLog('interaction_ignored', {
+          action,
+          message: '別の処理が完了するまで操作を無視しました。',
+        });
+        return false;
+      }
+      interactionLocked = true;
+      setControlsLocked(true, button);
+      showLoadingOverlay(`${buttonBusyLabel(button)}です。`);
+      return true;
+    }
+
+    function endExclusiveAction(button) {
+      interactionLocked = false;
+      setControlsLocked(false, button);
+      hideLoadingOverlay();
+    }
+
     function setLoading(text) {
+      showLoadingOverlay(text || '読み込み中です。');
       el('todayView').hidden = false;
       el('casesView').hidden = true;
       el('calendarView').hidden = true;
@@ -603,6 +757,7 @@
 
     function showRegistration(identity, extraMessage) {
       lastIdentity = identity || null;
+      hideLoadingOverlay();
       const text = [registrationMessage(identity), extraMessage || ''].filter(Boolean).join('\n\n');
       showMessage(text, 'notice');
       el('todayView').hidden = false;
@@ -939,6 +1094,7 @@
       else if (view === 'alerts') renderAlerts();
       else if (view === 'settings') renderSettings();
       else renderToday();
+      hideLoadingOverlay();
     }
 
     async function renderDetail(caseId, taskId = '') {
@@ -959,6 +1115,7 @@
       el('detailView').innerHTML = previewNoticeHtml() + (data.tasks.length
         ? data.tasks.map((task) => taskCard(task, { focus: task.taskId === data.focusTaskId })).join('')
         : '<div class="empty">この案件の作業はありません。</div>');
+      hideLoadingOverlay();
     }
 
     async function reloadData() {
@@ -1103,6 +1260,20 @@
     document.addEventListener('click', async (event) => {
       const button = event.target.closest('button');
       if (!button) return;
+      if (interactionLocked) {
+        event.preventDefault();
+        debugLog('interaction_ignored', {
+          action: buttonActionName(button) || (button.dataset.view ? `view:${button.dataset.view}` : 'button'),
+          message: '処理中のため連続操作を無視しました。',
+        });
+        return;
+      }
+      const needsExclusive = !!buttonActionName(button);
+      const locked = needsExclusive ? beginExclusiveAction(button) : false;
+      if (needsExclusive && !locked) {
+        event.preventDefault();
+        return;
+      }
       try {
         if (button.dataset.view) renderView(button.dataset.view);
         else if (button.dataset.case) await renderDetail(button.dataset.case);
@@ -1116,6 +1287,8 @@
         else if (button.dataset.createCase) await createCaseFromLiff();
       } catch (err) {
         showMessage(userFacingError(err), true);
+      } finally {
+        if (locked) endExclusiveAction(button);
       }
     });
 
@@ -1195,6 +1368,7 @@
           level: 'ERROR',
           error: err.message || String(err),
         });
+        hideLoadingOverlay();
         showMessage(userFacingError(err), true);
         el('todayView').innerHTML = '';
       }
