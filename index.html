@@ -427,6 +427,18 @@
     previewUserId = qs.get('previewUserId') || '';
     const DEBUG_MODE = qs.get('debug') === '1';
     const clientDebugEvents = [];
+    const READ_API_ACTIONS = {
+      whoami: true,
+      me: true,
+      dashboard: true,
+      todayTasks: true,
+      listCases: true,
+      calendar: true,
+      monthlySummary: true,
+      alertsSummary: true,
+      getCase: true,
+      adminOptions: true,
+    };
     const VIEW_TITLES = {
       today: '今日やること',
       cases: '担当案件',
@@ -468,15 +480,40 @@
         message.indexOf('タイムアウト') >= 0 ||
         message.indexOf('Failed to fetch') >= 0 ||
         message.indexOf('NetworkError') >= 0 ||
+        message.indexOf('Load failed') >= 0 ||
+        message.indexOf('429') >= 0 ||
+        message.indexOf('500') >= 0 ||
+        message.indexOf('502') >= 0 ||
+        message.indexOf('503') >= 0 ||
+        message.indexOf('504') >= 0 ||
         message.indexOf('LIFF APIの応答を読み取れません') >= 0
       ) {
         return [
-          '通信に失敗しました。',
-          '電波状況を確認して、LINEアプリからもう一度開き直してください。',
+          '読み込みに時間がかかっています。',
+          '少し待ってから、LINEアプリで開き直してください。',
           '何度も出る場合は、管理者にこの画面の内容を共有してください。',
         ].join('\n');
       }
       return message || '処理中にエラーが発生しました。時間をおいて開き直してください。';
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function isRetryableApiError(err) {
+      const message = (err && err.message) || String(err || '');
+      return message.indexOf('タイムアウト') >= 0 ||
+        message.indexOf('Failed to fetch') >= 0 ||
+        message.indexOf('NetworkError') >= 0 ||
+        message.indexOf('Load failed') >= 0 ||
+        message.indexOf('LIFF API通信に失敗しました') >= 0 ||
+        message.indexOf('LIFF APIの応答を読み取れません') >= 0;
+    }
+
+    function shouldFallbackToIdentity(err) {
+      const message = (err && err.message) || String(err || '');
+      return message.indexOf('登録されていません') >= 0 || message.indexOf('無効') >= 0;
     }
 
     function debugBase() {
@@ -792,9 +829,13 @@
       return fetch(API_URL || location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        cache: 'no-store',
         body: JSON.stringify(payload),
       }).then(async (response) => {
         const text = await response.text();
+        if (!response.ok) {
+          throw new Error(`LIFF API通信に失敗しました (${response.status})`);
+        }
         try {
           return JSON.parse(text || '{}');
         } catch (err) {
@@ -804,31 +845,43 @@
     }
 
     async function api(action, body = {}) {
-      debugLog('api_start', { action, hasIdToken: !!idToken });
-      try {
-        const result = await withTimeout(
-          callServerApi({ ...body, action, idToken }),
-          'LIFF API通信'
-        );
-        if (!result.ok) throw new Error(result.error || 'APIエラー');
-        if (result.data && result.data.user) setUser(result.data.user);
-        debugLog('api_success', {
-          action,
-          requested: result.data && result.data.requested,
-          settingsRow: result.data && result.data.settingsRow,
-          registered: result.data && result.data.registered,
-          active: result.data && result.data.active,
-          lineUserId: result.data && result.data.profile && result.data.profile.lineUserId,
-          displayName: result.data && result.data.profile && result.data.profile.displayName,
-        });
-        return result.data;
-      } catch (err) {
-        debugLog('api_error', {
-          level: 'ERROR',
-          action,
-          error: err.message || String(err),
-        });
-        throw err;
+      const attempts = READ_API_ACTIONS[action] ? 2 : 1;
+      const timeoutMs = action === 'dashboard' ? 25000 : 15000;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        debugLog('api_start', { action, hasIdToken: !!idToken, attempt });
+        try {
+          const result = await withTimeout(
+            callServerApi({ ...body, action, idToken }),
+            'LIFF API通信',
+            timeoutMs
+          );
+          if (!result.ok) throw new Error(result.error || 'APIエラー');
+          if (result.data && result.data.user) setUser(result.data.user);
+          debugLog('api_success', {
+            action,
+            attempt,
+            requested: result.data && result.data.requested,
+            settingsRow: result.data && result.data.settingsRow,
+            registered: result.data && result.data.registered,
+            active: result.data && result.data.active,
+            lineUserId: result.data && result.data.profile && result.data.profile.lineUserId,
+            displayName: result.data && result.data.profile && result.data.profile.displayName,
+          });
+          return result.data;
+        } catch (err) {
+          debugLog('api_error', {
+            level: 'ERROR',
+            action,
+            attempt,
+            error: err.message || String(err),
+          });
+          if (attempt < attempts && isRetryableApiError(err)) {
+            showLoadingOverlay('読み込みに時間がかかっています。もう一度だけ試しています。');
+            await wait(700);
+            continue;
+          }
+          throw err;
+        }
       }
     }
 
@@ -1118,26 +1171,22 @@
       hideLoadingOverlay();
     }
 
-    async function reloadData() {
-      const scoped = previewUserId ? { previewUserId } : {};
-      const requests = [
-        api('todayTasks', scoped),
-        api('listCases', scoped),
-        api('calendar', scoped),
-        api('monthlySummary', scoped),
-        api('alertsSummary', scoped),
-      ];
-      if (isAdminUser()) requests.push(api('adminOptions'));
-      const [today, caseData, calendarData, monthlyData, alertsData, adminData] = await Promise.all(requests);
-      previewInfo = (today && today.preview) || null;
-      todayTasks = today.tasks || [];
-      cases = caseData.cases || [];
-      calendarItems = calendarData.items || [];
-      monthlySummary = monthlyData.summary || null;
-      alertsSummary = alertsData.summary || null;
-      adminOptions = adminData ? adminData.options : null;
+    function applyDashboardData(data) {
+      const payload = data || {};
+      previewInfo = payload.preview || null;
+      todayTasks = payload.todayTasks || [];
+      cases = payload.cases || [];
+      calendarItems = payload.calendarItems || [];
+      monthlySummary = payload.monthlySummary || null;
+      alertsSummary = payload.alertsSummary || null;
+      adminOptions = payload.adminOptions || null;
       updateUserLabel();
       updateHomeSummary();
+    }
+
+    async function reloadData() {
+      const scoped = previewUserId ? { previewUserId } : {};
+      applyDashboardData(await api('dashboard', scoped));
     }
 
     async function completeTask(taskId, reopen) {
@@ -1325,6 +1374,25 @@
         idToken = liff.getIDToken();
         debugLog('id_token_checked', { hasIdToken: !!idToken });
         if (!idToken) throw new Error('LIFFのIDトークンを取得できませんでした。');
+        setLoading('案件情報を読み込んでいます。');
+        try {
+          await reloadData();
+          debugLog('data_loaded', {
+            active: true,
+            source: 'dashboard',
+          });
+          const caseId = qs.get('caseId');
+          const taskId = qs.get('taskId');
+          if (caseId || taskId) await renderDetail(caseId || '', taskId || '');
+          else renderView(DEFAULT_VIEW);
+          return;
+        } catch (dashboardErr) {
+          if (!shouldFallbackToIdentity(dashboardErr)) throw dashboardErr;
+          debugLog('dashboard_identity_fallback', {
+            message: dashboardErr.message || String(dashboardErr),
+          });
+        }
+
         setLoading('LINE連携情報を確認しています。');
         const identity = await api('whoami');
         lastIdentity = identity || null;
