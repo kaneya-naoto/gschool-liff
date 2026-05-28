@@ -278,6 +278,28 @@
       gap: 10px;
       margin-top: 10px;
     }
+    .form-section {
+      display: grid;
+      gap: 10px;
+      border: 1px solid #edf0f5;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+    }
+    .form-section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      color: #394150;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .form-section-title small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
     .field-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -351,6 +373,8 @@
       gap: 4px;
     }
     .calendar-day {
+      appearance: none;
+      width: 100%;
       min-height: 54px;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -358,6 +382,12 @@
       padding: 6px 4px;
       color: var(--text);
       text-align: center;
+      font: inherit;
+      cursor: pointer;
+    }
+    .calendar-day:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
     .calendar-day.outside {
       background: #f1f3f6;
@@ -366,6 +396,12 @@
     .calendar-day.today {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(18, 103, 216, 0.14) inset;
+    }
+    .calendar-day.selected {
+      border-color: var(--accent);
+      background: #eaf2ff;
+      color: #0c4a9e;
+      box-shadow: 0 0 0 2px rgba(18, 103, 216, 0.12) inset;
     }
     .calendar-day b {
       display: block;
@@ -388,6 +424,25 @@
     .calendar-day .overdue { background: #ffecec; color: var(--danger); }
     .calendar-day .near { background: #fff3d8; color: var(--warn); }
     .calendar-day .done { background: #e7f6ee; color: var(--ok); }
+    .calendar-filter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid #d9e6f7;
+      border-radius: 8px;
+      background: #f4f8ff;
+      padding: 8px 10px;
+      color: #1f4f85;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .calendar-filter button {
+      min-height: 30px;
+      padding: 5px 9px;
+      font-size: 12px;
+      background: #fff;
+    }
     .agenda-group {
       display: grid;
       gap: 8px;
@@ -398,45 +453,192 @@
       font-weight: 750;
       margin: 2px 0 -2px;
     }
+    .settings-card {
+      display: grid;
+      gap: 10px;
+      border: 1px solid #dfe5ee;
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+    .settings-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .settings-role {
+      flex: none;
+      border-radius: 999px;
+      background: #eaf2ff;
+      color: #0c4a9e;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .settings-identity {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .settings-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border: 1px solid #dfe5ee;
+      border-radius: 999px;
+      background: #f9fafc;
+      color: #394150;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .settings-details {
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+    }
+    .settings-details summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .settings-details code {
+      display: block;
+      margin-top: 6px;
+      color: #394150;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .settings-help {
+      border: 1px solid #dfe5ee;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
     .admin-menu {
-      border: 1px solid var(--line);
+      border: 1px solid #dfe5ee;
       border-radius: 8px;
       background: #fff;
       padding: 0;
+      overflow: hidden;
     }
     .admin-menu > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       list-style: none;
       cursor: pointer;
-      padding: 13px 14px;
+      padding: 12px;
+      background: #fff;
       color: var(--text);
-      font-weight: 750;
     }
     .admin-menu > summary::-webkit-details-marker {
       display: none;
     }
-    .admin-menu > summary::after {
-      content: "開く";
-      float: right;
+    .admin-summary-main {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+    .admin-summary-main strong {
+      font-size: 15px;
+      line-height: 1.25;
+    }
+    .admin-summary-main small {
       color: var(--muted);
       font-size: 12px;
       font-weight: 650;
     }
-    .admin-menu[open] > summary::after {
+    .admin-toggle {
+      flex: none;
+      min-width: 48px;
+      border: 1px solid #dfe5ee;
+      border-radius: 999px;
+      background: #f4f8ff;
+      color: #394150;
+      padding: 5px 9px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .admin-toggle::before {
+      content: "開く";
+    }
+    .admin-menu[open] .admin-toggle::before {
       content: "閉じる";
     }
-    .admin-menu small {
+    .admin-menu-body {
+      display: grid;
+      gap: 8px;
+      border-top: 1px solid var(--line);
+      padding: 8px;
+      background: #f7f8fa;
+    }
+    .admin-secondary {
+      border: 1px solid #dfe5ee;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0;
+      overflow: hidden;
+    }
+    .admin-secondary > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      list-style: none;
+      cursor: pointer;
+      padding: 11px 12px;
+      color: #394150;
+      font-size: 13px;
+      font-weight: 750;
+    }
+    .admin-secondary > summary::after {
+      content: "開く";
+      flex: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .admin-secondary[open] > summary::after {
+      content: "閉じる";
+    }
+    .admin-secondary > summary::-webkit-details-marker {
+      display: none;
+    }
+    .admin-secondary > summary small {
       display: block;
       margin-top: 2px;
       color: var(--muted);
       font-size: 11px;
       font-weight: 650;
     }
-    .admin-menu-body {
+    .admin-secondary-body {
       display: grid;
       gap: 10px;
       border-top: 1px solid var(--line);
       padding: 10px;
-      background: #f7f8fa;
+      background: #fbfcff;
+    }
+    .admin-tool-card {
+      display: grid;
+      gap: 10px;
+      border: 1px solid #e5e9f0;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+    }
+    .admin-tool-title {
+      margin: 0;
+      color: #394150;
+      font-size: 13px;
+      font-weight: 750;
     }
     .advanced-fields {
       border: 1px solid var(--line);
@@ -631,6 +833,7 @@
     let homeSummary = null;
     let loadedViews = {};
     let calendarMode = 'week';
+    let selectedCalendarDate = '';
 
     const el = (id) => document.getElementById(id);
     const qs = new URLSearchParams(location.search);
@@ -669,7 +872,7 @@
     let currentView = DEFAULT_VIEW;
 
     function escapeHtml(value) {
-      return String(value || '')
+      return String(value === null || value === undefined ? '' : value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -994,7 +1197,7 @@
       const alertCount = summary.alertCount !== undefined
         ? summary.alertCount
         : todayTasks.filter((task) => !task.completed && (task.status === '期限超過' || task.status === '期限接近')).length;
-      node.hidden = currentView === 'today';
+      node.hidden = currentView === 'today' || currentView === 'settings';
       node.innerHTML = `
         <span class="summary-pill">今日 ${escapeHtml(todayCount)}</span>
         <span class="summary-pill${alertCount ? ' danger' : ''}">注意 ${escapeHtml(alertCount)}</span>
@@ -1335,10 +1538,10 @@
       const status = strongestStatus(items);
       const todayKey = dateKey(new Date());
       return `
-        <div class="calendar-day${outside ? ' outside' : ''}${key === todayKey ? ' today' : ''}">
+        <button class="calendar-day${outside ? ' outside' : ''}${key === todayKey ? ' today' : ''}${selectedCalendarDate === key ? ' selected' : ''}" type="button" data-calendar-date="${escapeHtml(key)}" aria-pressed="${selectedCalendarDate === key ? 'true' : 'false'}"${outside ? ' disabled' : ''}>
           <b>${date.getDate()}</b>
           ${items.length ? `<span class="${badgeClass(status)}">${items.length}</span>` : '<span>0</span>'}
-        </div>
+        </button>
       `;
     }
 
@@ -1379,10 +1582,25 @@
       return '';
     }
 
-    function renderAgendaList(items) {
+    function filterCalendarItemsBySelectedDate(items) {
+      if (!selectedCalendarDate || calendarMode === 'list') return items || [];
+      return (items || []).filter((task) => dateKey(parseLiffDate(task.dueDate)) === selectedCalendarDate);
+    }
+
+    function selectedCalendarFilterHtml() {
+      if (!selectedCalendarDate || calendarMode === 'list') return '';
+      return `
+        <div class="calendar-filter">
+          <span>${escapeHtml(formatShortDate(parseLiffDate(selectedCalendarDate)))} の予定</span>
+          <button type="button" data-clear-calendar-date="1">全日表示</button>
+        </div>
+      `;
+    }
+
+    function renderAgendaList(items, emptyText = 'この範囲の予定はありません。') {
       const grouped = calendarItemsByDate(items);
       const keys = Object.keys(grouped).sort();
-      if (!keys.length) return '<div class="empty">この範囲の予定はありません。</div>';
+      if (!keys.length) return `<div class="empty">${escapeHtml(emptyText)}</div>`;
       return keys.map((key) => {
         const date = key === 'none' ? null : parseLiffDate(key);
         return `
@@ -1397,6 +1615,10 @@
     function renderCalendar() {
       showOnly('calendar');
       const visibleItems = tasksForCalendarMode();
+      const agendaItems = filterCalendarItemsBySelectedDate(visibleItems);
+      const agendaEmptyText = selectedCalendarDate && calendarMode !== 'list'
+        ? 'この日の予定はありません。'
+        : 'この範囲の予定はありません。';
       el('calendarView').innerHTML = previewNoticeHtml() + `
         <div class="calendar-toolbar">
           ${calendarModeButton('week', '今週')}
@@ -1404,7 +1626,8 @@
           ${calendarModeButton('list', '日付別')}
         </div>
         ${calendarItems.length ? renderCalendarGrid(visibleItems) : ''}
-        ${calendarItems.length ? renderAgendaList(visibleItems) : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>'}
+        ${selectedCalendarFilterHtml()}
+        ${calendarItems.length ? renderAgendaList(agendaItems, agendaEmptyText) : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>'}
       `;
     }
 
@@ -1419,8 +1642,8 @@
     function adminPreviewCard() {
       if (!isAdminUser() || !adminOptions) return '';
       return `
-        <article class="card">
-          <p class="title">担当者プレビュー</p>
+        <section class="admin-tool-card">
+          <p class="admin-tool-title">担当者プレビュー</p>
           <div class="form">
             <div class="field">
               <label for="previewUserId">表示確認する利用者</label>
@@ -1431,7 +1654,7 @@
               <button class="secondary" type="button" data-clear-preview="1">プレビュー解除</button>
             </div>
           </div>
-        </article>
+        </section>
       `;
     }
 
@@ -1439,8 +1662,8 @@
       if (!isAdminUser() || !adminOptions || isPreviewActive()) return '';
       const selected = previewUserId || (currentUser && currentUser.userId) || '';
       return `
-        <article class="card">
-          <p class="title">TESTサンプル</p>
+        <section class="admin-tool-card">
+          <p class="admin-tool-title">TESTサンプル</p>
           <div class="form">
             <div class="field">
               <label for="sampleUserId">割り当て先</label>
@@ -1451,7 +1674,7 @@
               <button class="danger" type="button" data-cleanup-test-samples="1">TESTを削除</button>
             </div>
           </div>
-        </article>
+        </section>
       `;
     }
 
@@ -1461,40 +1684,44 @@
       const channels = adminOptions.channels || [];
       const dateOptions = optionList(DATE_FIELD_OPTIONS, 'coverageDate');
       return `
-        <article class="card">
-          <p class="title">案件作成</p>
+        <details class="admin-secondary admin-primary-tool">
+          <summary><span>案件作成<small>案件名・種別・番組・主要日付で作成</small></span></summary>
+          <div class="admin-secondary-body">
           <div class="form">
-            <div class="field">
-              <label for="caseTitle">案件名</label>
-              <input id="caseTitle" type="text" autocomplete="off" placeholder="例: 月例番組 6月 第1回">
-            </div>
-            <div class="field-grid">
+            <div class="form-section">
+              <div class="form-section-title"><span>最小項目</span><small>詳細は作成後に調整</small></div>
               <div class="field">
-                <label for="caseType">案件種別</label>
-                <select id="caseType">${optionList(caseTypes, caseTypes[0] || '')}</select>
+                <label for="caseTitle">案件名</label>
+                <input id="caseTitle" type="text" autocomplete="off" placeholder="例: 月例番組 6月 第1回">
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="caseType">案件種別</label>
+                  <select id="caseType">${optionList(caseTypes, caseTypes[0] || '')}</select>
+                </div>
+                <div class="field">
+                  <label for="caseChannel">チャンネル</label>
+                  <select id="caseChannel"><option value="">未設定</option>${optionList(channels, '')}</select>
+                </div>
               </div>
               <div class="field">
-                <label for="caseChannel">チャンネル</label>
-                <select id="caseChannel"><option value="">未設定</option>${optionList(channels, '')}</select>
+                <label for="caseProgram">番組</label>
+                <select id="caseProgram"><option value="">未設定</option></select>
               </div>
-            </div>
-            <div class="field">
-              <label for="caseProgram">番組</label>
-              <select id="caseProgram"><option value="">未設定</option></select>
-            </div>
-            <div class="field-grid">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="casePrimaryDateType">主要日付の種類</label>
+                  <select id="casePrimaryDateType">${dateOptions}</select>
+                </div>
+                <div class="field">
+                  <label for="casePrimaryDate">主要日付</label>
+                  <input id="casePrimaryDate" type="date">
+                </div>
+              </div>
               <div class="field">
-                <label for="casePrimaryDateType">主要日付の種類</label>
-                <select id="casePrimaryDateType">${dateOptions}</select>
+                <label for="caseNote">備考</label>
+                <textarea id="caseNote" rows="2"></textarea>
               </div>
-              <div class="field">
-                <label for="casePrimaryDate">主要日付</label>
-                <input id="casePrimaryDate" type="date">
-              </div>
-            </div>
-            <div class="field">
-              <label for="caseNote">備考</label>
-              <textarea id="caseNote"></textarea>
             </div>
             <details class="advanced-fields">
               <summary>詳細日付</summary>
@@ -1512,7 +1739,8 @@
               <button class="primary" type="button" data-create-case="1">案件を作成</button>
             </div>
           </div>
-        </article>
+          </div>
+        </details>
       `;
     }
 
@@ -1532,13 +1760,25 @@
       if (!isAdminUser() || !adminOptions) return '';
       const tools = [adminSampleCard(), adminPreviewCard()].filter(Boolean).join('');
       const toolsBlock = tools
-        ? `<details class="advanced-fields"><summary>検証・表示確認</summary>${tools}</details>`
+        ? `
+          <details class="admin-secondary">
+            <summary><span>検証・表示確認<small>TESTサンプルと担当者プレビュー</small></span></summary>
+            <div class="admin-secondary-body">${tools}</div>
+          </details>
+        `
         : '';
       const items = [adminCaseForm(), toolsBlock].filter(Boolean).join('');
       if (!items) return '';
       return `
         <details class="admin-menu">
-          <summary>管理者メニュー<small>必要な時だけ開く</small></summary>
+          <summary>
+            <span class="admin-summary-main">
+              <span class="eyebrow">管理者向け</span>
+              <strong>管理者メニュー</strong>
+              <small>必要な時だけ開く</small>
+            </span>
+            <span class="admin-toggle" aria-hidden="true"></span>
+          </summary>
           <div class="admin-menu-body">${items}</div>
         </details>
       `;
@@ -1549,13 +1789,23 @@
       const user = currentUser || {};
       el('settingsView').innerHTML = `
         ${previewNoticeHtml()}
-        <article class="card">
-          <p class="title">${escapeHtml(user.displayName || '利用者')}</p>
-          <div class="row"><b>権限</b><span>${escapeHtml(user.role || '')}</span></div>
-          <div class="row"><b>区分</b><span>${escapeHtml(user.type || '')}</span></div>
-          <div class="row"><b>利用者ID</b><span>${escapeHtml(user.userId || '')}</span></div>
+        <article class="settings-card">
+          <div class="settings-head">
+            <div>
+              <span class="eyebrow">登録情報</span>
+              <p class="title">${escapeHtml(user.displayName || '利用者')}</p>
+            </div>
+            <span class="settings-role">${escapeHtml(user.role || '利用者')}</span>
+          </div>
+          <div class="settings-identity">
+            <span class="settings-chip">${escapeHtml(user.type || '区分未設定')}</span>
+          </div>
+          <details class="settings-details">
+            <summary>利用者ID</summary>
+            <code>${escapeHtml(user.userId || '')}</code>
+          </details>
         </article>
-        <div class="notice">表示内容や担当案件が違う場合は、管理者に設定_利用者と担当割当の確認を依頼してください。</div>
+        <div class="settings-help">表示内容や担当案件が違う場合は、管理者に設定_利用者と担当割当の確認を依頼してください。</div>
         ${adminMenuHtml()}
       `;
       refreshProgramSelect();
@@ -1778,6 +2028,15 @@
       try {
         if (button.dataset.calendarMode) {
           calendarMode = button.dataset.calendarMode;
+          selectedCalendarDate = '';
+          renderCalendar();
+        }
+        else if (button.dataset.calendarDate) {
+          selectedCalendarDate = selectedCalendarDate === button.dataset.calendarDate ? '' : button.dataset.calendarDate;
+          renderCalendar();
+        }
+        else if (button.dataset.clearCalendarDate) {
+          selectedCalendarDate = '';
           renderCalendar();
         }
         else if (button.dataset.view) await openView(button.dataset.view);
