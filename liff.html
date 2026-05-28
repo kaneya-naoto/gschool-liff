@@ -178,6 +178,53 @@
       color: #394150;
       font-weight: 650;
     }
+    .form {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .field {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+    label {
+      color: #394150;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      min-height: 42px;
+      padding: 9px 10px;
+      font: inherit;
+      font-size: 14px;
+    }
+    textarea {
+      min-height: 72px;
+      resize: vertical;
+    }
+    .preview {
+      border-color: #f1c36d;
+      background: #fffaf0;
+      color: #714700;
+    }
+    @media (max-width: 560px) {
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+    }
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -310,11 +357,15 @@
     let calendarItems = [];
     let monthlySummary = null;
     let alertsSummary = null;
+    let adminOptions = null;
+    let previewUserId = '';
+    let previewInfo = null;
     let activeCaseId = '';
     let lastIdentity = null;
 
     const el = (id) => document.getElementById(id);
     const qs = new URLSearchParams(location.search);
+    previewUserId = qs.get('previewUserId') || '';
     const DEBUG_MODE = qs.get('debug') === '1';
     const clientDebugEvents = [];
     const VIEW_TITLES = {
@@ -506,9 +557,28 @@
         && location.pathname.indexOf('/userCodeAppPanel') >= 0;
     }
 
+    function isAdminUser() {
+      return currentUser && currentUser.role === '管理者';
+    }
+
+    function isPreviewActive() {
+      return !!(previewInfo && previewInfo.enabled);
+    }
+
+    function updateUserLabel() {
+      if (!currentUser) {
+        el('user').textContent = '';
+        return;
+      }
+      const base = `${currentUser.displayName || '利用者'} / ${currentUser.role || ''}`;
+      el('user').textContent = previewInfo && previewInfo.enabled
+        ? `${base} / プレビュー:${previewInfo.displayName || previewInfo.userId}`
+        : base;
+    }
+
     function setUser(user) {
       currentUser = user;
-      el('user').textContent = user ? `${user.displayName || '利用者'} / ${user.role || ''}` : '';
+      updateUserLabel();
       updateHomeSummary();
     }
 
@@ -527,7 +597,7 @@
       }
       return [
         'このLINEアカウントはまだ利用登録されていません。',
-        '下のボタンから申請してください。管理者の確認後に使えるようになります。',
+        '登録申請を自動で送信します。管理者の確認後に使えるようになります。',
       ].filter(Boolean).join('\n');
     }
 
@@ -610,7 +680,9 @@
     function taskCard(task, options = {}) {
       const focus = options.focus ? ' focus' : '';
       const detailButton = `<button class="secondary" type="button" data-case="${escapeHtml(task.caseId)}">案件を見る</button>`;
-      const actionButton = task.completed
+      const actionButton = isPreviewActive()
+        ? ''
+        : task.completed
         ? `<button class="danger" type="button" data-reopen="${escapeHtml(task.taskId)}">未完了に戻す</button>`
         : `<button class="primary" type="button" data-complete="${escapeHtml(task.taskId)}">完了にする</button>`;
       return `
@@ -629,6 +701,19 @@
           <div class="actions">${actionButton}${detailButton}</div>
         </article>
       `;
+    }
+
+    function optionList(values, selected) {
+      return (values || []).map((value) => {
+        const raw = typeof value === 'string' ? value : value.value;
+        const label = typeof value === 'string' ? value : value.label;
+        return `<option value="${escapeHtml(raw)}"${raw === selected ? ' selected' : ''}>${escapeHtml(label || raw)}</option>`;
+      }).join('');
+    }
+
+    function previewNoticeHtml() {
+      if (!isPreviewActive()) return '';
+      return `<div class="notice preview">担当者プレビュー中: ${escapeHtml(previewInfo.displayName || previewInfo.userId)} として見える範囲だけ表示しています。更新操作はできません。</div>`;
     }
 
     function caseCard(item) {
@@ -654,23 +739,23 @@
 
     function renderToday() {
       showOnly('today');
-      el('todayView').innerHTML = todayTasks.length
+      el('todayView').innerHTML = previewNoticeHtml() + (todayTasks.length
         ? todayTasks.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
-        : '<div class="empty">今日すぐ対応が必要な作業はありません。担当中の案件は「担当案件」から確認できます。</div>';
+        : '<div class="empty">今日すぐ対応が必要な作業はありません。担当中の案件は「担当案件」から確認できます。</div>');
     }
 
     function renderCases() {
       showOnly('cases');
-      el('casesView').innerHTML = cases.length
+      el('casesView').innerHTML = previewNoticeHtml() + (cases.length
         ? cases.map(caseCard).join('')
-        : '<div class="empty">表示できる担当案件はまだありません。案件が割り当てられると、ここに表示されます。</div>';
+        : '<div class="empty">表示できる担当案件はまだありません。案件が割り当てられると、ここに表示されます。</div>');
     }
 
     function renderCalendar() {
       showOnly('calendar');
-      el('calendarView').innerHTML = calendarItems.length
+      el('calendarView').innerHTML = previewNoticeHtml() + (calendarItems.length
         ? calendarItems.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
-        : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>';
+        : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>');
     }
 
     function summaryMetric(label, value, className = '') {
@@ -692,6 +777,7 @@
         ? (s.items || []).map((task) => taskCard(task)).join('')
         : '<div class="empty">この月の担当予定はありません。</div>';
       el('monthlyView').innerHTML = `
+        ${previewNoticeHtml()}
         <article class="card">
           <p class="title">${escapeHtml(s.monthLabel || '月次確認')}</p>
           <div class="metric-grid">${metrics}</div>
@@ -712,6 +798,7 @@
         ? (s.items || []).map((task) => taskCard(task)).join('')
         : '<div class="empty">現在の要注意作業はありません。</div>';
       el('alertsView').innerHTML = `
+        ${previewNoticeHtml()}
         <article class="card">
           <p class="title">アラート</p>
           <div class="metric-grid">${metrics}</div>
@@ -720,10 +807,117 @@
       `;
     }
 
+    function adminUserOptions(selected) {
+      const users = (adminOptions && adminOptions.users) || [];
+      return optionList(users.map((user) => ({
+        value: user.userId,
+        label: `${user.displayName || user.userId} / ${user.role || ''}`,
+      })), selected || (currentUser && currentUser.userId) || '');
+    }
+
+    function adminPreviewCard() {
+      if (!isAdminUser() || !adminOptions) return '';
+      return `
+        <article class="card">
+          <p class="title">担当者プレビュー</p>
+          <div class="form">
+            <div class="field">
+              <label for="previewUserId">表示確認する利用者</label>
+              <select id="previewUserId">${adminUserOptions(previewUserId || (currentUser && currentUser.userId) || '')}</select>
+            </div>
+            <div class="actions">
+              <button class="primary" type="button" data-apply-preview="1">この利用者で表示</button>
+              <button class="secondary" type="button" data-clear-preview="1">プレビュー解除</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function adminSampleCard() {
+      if (!isAdminUser() || !adminOptions || isPreviewActive()) return '';
+      const selected = previewUserId || (currentUser && currentUser.userId) || '';
+      return `
+        <article class="card">
+          <p class="title">TESTサンプル</p>
+          <div class="form">
+            <div class="field">
+              <label for="sampleUserId">割り当て先</label>
+              <select id="sampleUserId">${adminUserOptions(selected)}</select>
+            </div>
+            <div class="actions">
+              <button class="primary" type="button" data-setup-test-samples="1">TESTを投入</button>
+              <button class="danger" type="button" data-cleanup-test-samples="1">TESTを削除</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function adminCaseForm() {
+      if (!isAdminUser() || !adminOptions || isPreviewActive()) return '';
+      const caseTypes = adminOptions.caseTypes || [];
+      const channels = adminOptions.channels || [];
+      return `
+        <article class="card">
+          <p class="title">案件作成</p>
+          <div class="form">
+            <div class="field">
+              <label for="caseTitle">案件名</label>
+              <input id="caseTitle" type="text" autocomplete="off" placeholder="例: 月例番組 6月 第1回">
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="caseType">案件種別</label>
+                <select id="caseType">${optionList(caseTypes, caseTypes[0] || '')}</select>
+              </div>
+              <div class="field">
+                <label for="caseChannel">チャンネル</label>
+                <select id="caseChannel"><option value="">未設定</option>${optionList(channels, '')}</select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="caseProgram">番組</label>
+              <select id="caseProgram"><option value="">未設定</option></select>
+            </div>
+            <div class="field-grid">
+              <div class="field"><label for="shootDate">撮影日</label><input id="shootDate" type="date"></div>
+              <div class="field"><label for="releaseDate">配信日</label><input id="releaseDate" type="date"></div>
+              <div class="field"><label for="recordingDate">収録日</label><input id="recordingDate" type="date"></div>
+              <div class="field"><label for="visitDate">来店日</label><input id="visitDate" type="date"></div>
+              <div class="field"><label for="appearanceDate">出演日</label><input id="appearanceDate" type="date"></div>
+              <div class="field"><label for="coverageDate">取材日</label><input id="coverageDate" type="date"></div>
+              <div class="field"><label for="csReleaseDate">CS配信日</label><input id="csReleaseDate" type="date"></div>
+            </div>
+            <div class="field">
+              <label for="caseNote">備考</label>
+              <textarea id="caseNote"></textarea>
+            </div>
+            <div class="actions">
+              <button class="primary" type="button" data-create-case="1">案件を作成</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function refreshProgramSelect() {
+      const select = el('caseProgram');
+      const channel = el('caseChannel');
+      if (!select || !channel || !adminOptions) return;
+      const programsByChannel = adminOptions.programsByChannel || {};
+      const programs = channel.value
+        ? (programsByChannel[channel.value] || [])
+        : Object.keys(programsByChannel).reduce((all, key) => all.concat(programsByChannel[key] || []), []);
+      const unique = programs.filter((value, index, all) => all.indexOf(value) === index);
+      select.innerHTML = `<option value="">未設定</option>${optionList(unique, select.value)}`;
+    }
+
     function renderSettings() {
       showOnly('settings');
       const user = currentUser || {};
       el('settingsView').innerHTML = `
+        ${previewNoticeHtml()}
         <article class="card">
           <p class="title">${escapeHtml(user.displayName || '利用者')}</p>
           <div class="row"><b>権限</b><span>${escapeHtml(user.role || '')}</span></div>
@@ -731,7 +925,11 @@
           <div class="row"><b>利用者ID</b><span>${escapeHtml(user.userId || '')}</span></div>
         </article>
         <div class="notice">表示内容や担当案件が違う場合は、管理者に設定_利用者と担当割当の確認を依頼してください。</div>
+        ${adminPreviewCard()}
+        ${adminSampleCard()}
+        ${adminCaseForm()}
       `;
+      refreshProgramSelect();
     }
 
     function renderView(view) {
@@ -745,7 +943,9 @@
 
     async function renderDetail(caseId, taskId = '') {
       showMessage('');
-      const data = await api('getCase', { caseId, taskId });
+      const data = await api('getCase', Object.assign({ caseId, taskId }, previewUserId ? { previewUserId } : {}));
+      previewInfo = data.preview || null;
+      updateUserLabel();
       el('todayView').hidden = true;
       el('casesView').hidden = true;
       el('calendarView').hidden = true;
@@ -756,28 +956,38 @@
       setActiveMenu('');
       document.querySelector('h1').textContent = data.case.title;
       activeCaseId = data.case.caseId;
-      el('detailView').innerHTML = data.tasks.length
+      el('detailView').innerHTML = previewNoticeHtml() + (data.tasks.length
         ? data.tasks.map((task) => taskCard(task, { focus: task.taskId === data.focusTaskId })).join('')
-        : '<div class="empty">この案件の作業はありません。</div>';
+        : '<div class="empty">この案件の作業はありません。</div>');
     }
 
     async function reloadData() {
-      const [today, caseData, calendarData, monthlyData, alertsData] = await Promise.all([
-        api('todayTasks'),
-        api('listCases'),
-        api('calendar'),
-        api('monthlySummary'),
-        api('alertsSummary'),
-      ]);
+      const scoped = previewUserId ? { previewUserId } : {};
+      const requests = [
+        api('todayTasks', scoped),
+        api('listCases', scoped),
+        api('calendar', scoped),
+        api('monthlySummary', scoped),
+        api('alertsSummary', scoped),
+      ];
+      if (isAdminUser()) requests.push(api('adminOptions'));
+      const [today, caseData, calendarData, monthlyData, alertsData, adminData] = await Promise.all(requests);
+      previewInfo = (today && today.preview) || null;
       todayTasks = today.tasks || [];
       cases = caseData.cases || [];
       calendarItems = calendarData.items || [];
       monthlySummary = monthlyData.summary || null;
       alertsSummary = alertsData.summary || null;
+      adminOptions = adminData ? adminData.options : null;
+      updateUserLabel();
       updateHomeSummary();
     }
 
     async function completeTask(taskId, reopen) {
+      if (isPreviewActive()) {
+        showMessage('担当者プレビュー中は更新できません。プレビューを解除してから操作してください。', 'notice');
+        return;
+      }
       showMessage('');
       await api(reopen ? 'reopenTask' : 'completeTask', { taskId });
       await reloadData();
@@ -812,6 +1022,84 @@
       showRegistration(identity, result && result.requested ? '申請を送信しました。管理者の確認をお待ちください。' : '');
     }
 
+    async function applyPreviewMode() {
+      const select = el('previewUserId');
+      previewUserId = select ? select.value : '';
+      setLoading('担当者表示を確認しています。');
+      await reloadData();
+      renderView(currentView);
+    }
+
+    async function clearPreviewMode() {
+      previewUserId = '';
+      previewInfo = null;
+      setLoading('表示を戻しています。');
+      await reloadData();
+      renderView(currentView);
+    }
+
+    async function setupTestSamples() {
+      if (isPreviewActive()) {
+        showMessage('担当者プレビュー中はTESTサンプルを変更できません。プレビューを解除してから操作してください。', 'notice');
+        return;
+      }
+      const select = el('sampleUserId');
+      const targetUserId = select ? select.value : '';
+      setLoading('TESTサンプルを投入しています。');
+      const data = await api('setupTestSamples', { targetUserId });
+      previewUserId = targetUserId;
+      await reloadData();
+      renderSettings();
+      const result = data.result || {};
+      showMessage(`TESTサンプルを作成しました。\n案件ID: ${result.caseId || ''}\n割り当て先: ${result.targetDisplayName || result.targetUserId || ''}`, 'notice');
+    }
+
+    async function cleanupTestSamples() {
+      if (isPreviewActive()) {
+        showMessage('担当者プレビュー中はTESTサンプルを変更できません。プレビューを解除してから操作してください。', 'notice');
+        return;
+      }
+      setLoading('TESTサンプルを削除しています。');
+      const data = await api('cleanupTestSamples');
+      previewUserId = '';
+      previewInfo = null;
+      await reloadData();
+      renderSettings();
+      const result = data.result || {};
+      showMessage(`TESTサンプルを削除しました。\n案件:${result.cases || 0} / 工程:${result.tasks || 0} / 案件担当:${result.caseAssignees || 0} / 工程担当:${result.taskAssignees || 0}`, 'notice');
+    }
+
+    async function createCaseFromLiff() {
+      if (isPreviewActive()) {
+        showMessage('担当者プレビュー中は案件を作成できません。プレビューを解除してから操作してください。', 'notice');
+        return;
+      }
+      const payload = {
+        title: el('caseTitle') ? el('caseTitle').value : '',
+        caseType: el('caseType') ? el('caseType').value : '',
+        channel: el('caseChannel') ? el('caseChannel').value : '',
+        program: el('caseProgram') ? el('caseProgram').value : '',
+        shootDate: el('shootDate') ? el('shootDate').value : '',
+        releaseDate: el('releaseDate') ? el('releaseDate').value : '',
+        recordingDate: el('recordingDate') ? el('recordingDate').value : '',
+        visitDate: el('visitDate') ? el('visitDate').value : '',
+        appearanceDate: el('appearanceDate') ? el('appearanceDate').value : '',
+        coverageDate: el('coverageDate') ? el('coverageDate').value : '',
+        csReleaseDate: el('csReleaseDate') ? el('csReleaseDate').value : '',
+        note: el('caseNote') ? el('caseNote').value : '',
+      };
+      setLoading('案件を作成しています。');
+      const data = await api('createCase', payload);
+      previewUserId = '';
+      previewInfo = null;
+      await reloadData();
+      const result = data.result || {};
+      const message = `案件を作成しました。\n案件ID: ${result.caseId || ''}`;
+      if (result.caseId) await renderDetail(result.caseId);
+      else renderCases();
+      showMessage(message, 'notice');
+    }
+
     document.addEventListener('click', async (event) => {
       const button = event.target.closest('button');
       if (!button) return;
@@ -821,9 +1109,18 @@
         else if (button.dataset.complete) await completeTask(button.dataset.complete, false);
         else if (button.dataset.reopen) await completeTask(button.dataset.reopen, true);
         else if (button.dataset.requestRegistration) await requestRegistration();
+        else if (button.dataset.applyPreview) await applyPreviewMode();
+        else if (button.dataset.clearPreview) await clearPreviewMode();
+        else if (button.dataset.setupTestSamples) await setupTestSamples();
+        else if (button.dataset.cleanupTestSamples) await cleanupTestSamples();
+        else if (button.dataset.createCase) await createCaseFromLiff();
       } catch (err) {
         showMessage(userFacingError(err), true);
       }
+    });
+
+    document.addEventListener('change', (event) => {
+      if (event.target && event.target.id === 'caseChannel') refreshProgramSelect();
     });
 
     async function start() {
@@ -864,7 +1161,14 @@
             lineUserId: identity.profile && identity.profile.lineUserId,
             displayName: identity.profile && identity.profile.displayName,
           });
-          showRegistration(identity);
+          try {
+            await requestRegistration();
+          } catch (registrationErr) {
+            showRegistration(
+              identity,
+              `${userFacingError(registrationErr)}\n下のボタンからもう一度申請できます。`
+            );
+          }
           return;
         }
         if (!identity.active) {
