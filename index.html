@@ -237,6 +237,18 @@
     .badge.near { background: #fff3d8; color: var(--warn); }
     .badge.done { background: #e7f6ee; color: var(--ok); }
     .badge.pending { background: #eef1f5; color: #495267; }
+    .sample-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      border: 1px solid #dfe5ee;
+      border-radius: 999px;
+      background: #f9fafc;
+      color: var(--muted);
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 750;
+    }
     .row {
       display: grid;
       grid-template-columns: 84px 1fr;
@@ -272,6 +284,37 @@
       color: var(--muted);
       font-size: 12px;
       font-weight: 700;
+    }
+    .today-sample {
+      display: grid;
+      gap: 8px;
+      border: 1px dashed #b7c2d2;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+    }
+    .today-sample-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .today-sample-head h2 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .today-sample-head span {
+      flex: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .today-sample p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
     }
     .form {
       display: grid;
@@ -362,6 +405,41 @@
       border-color: var(--accent);
       background: var(--accent-soft);
       color: #0c4a9e;
+    }
+    .calendar-nav {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) 44px;
+      gap: 6px;
+      align-items: center;
+    }
+    .calendar-nav button {
+      min-height: 38px;
+      padding: 7px 8px;
+      font-size: 13px;
+    }
+    .calendar-nav-label {
+      display: grid;
+      gap: 2px;
+      min-height: 38px;
+      border: 1px solid #dfe5ee;
+      border-radius: 8px;
+      background: #fff;
+      padding: 5px 8px;
+      text-align: center;
+      align-content: center;
+    }
+    .calendar-nav-label b {
+      font-size: 13px;
+      line-height: 1.2;
+    }
+    .calendar-nav-label button {
+      min-height: 0;
+      border: 0;
+      background: transparent;
+      color: var(--accent);
+      padding: 0;
+      font-size: 11px;
+      line-height: 1.2;
     }
     .calendar-panel {
       display: grid;
@@ -833,6 +911,7 @@
     let homeSummary = null;
     let loadedViews = {};
     let calendarMode = 'week';
+    let calendarCursorDate = todayDate();
     let selectedCalendarDate = '';
 
     const el = (id) => document.getElementById(id);
@@ -902,6 +981,11 @@
         String(date.getMonth() + 1).padStart(2, '0'),
         String(date.getDate()).padStart(2, '0'),
       ].join('-');
+    }
+
+    function todayDate() {
+      const today = new Date();
+      return new Date(today.getFullYear(), today.getMonth(), today.getDate());
     }
 
     function addDays(date, days) {
@@ -1358,6 +1442,7 @@
     }
 
     function taskActionButtons(task) {
+      if (task.sample) return '<span class="sample-pill">表示サンプル</span>';
       const detailButton = `<button class="secondary" type="button" data-case="${escapeHtml(task.caseId)}">案件を見る</button>`;
       const actionButton = isPreviewActive()
         ? ''
@@ -1478,6 +1563,48 @@
       `;
     }
 
+    function demoTodayTasks() {
+      const today = dateKey(todayDate());
+      return [
+        {
+          taskId: 'sample-today-1',
+          caseId: 'sample-case-1',
+          taskName: '台本初稿の確認',
+          caseTitle: '[表示サンプル] 月例番組 6月 第1回',
+          status: '期限接近',
+          dueDate: today,
+          locationName: 'オンライン',
+          targetName: '番組台本',
+          sample: true,
+        },
+        {
+          taskId: 'sample-today-2',
+          caseId: 'sample-case-2',
+          taskName: '撮影素材の受け取り連絡',
+          caseTitle: '[表示サンプル] YouTubeショート制作',
+          status: '予定',
+          dueDate: today,
+          locationName: '社内',
+          targetName: '撮影素材',
+          sample: true,
+        },
+      ];
+    }
+
+    function renderTodaySample() {
+      if (!isAdminUser() || todayTasks.length) return '';
+      return `
+        <section class="today-sample" aria-label="今日画面の表示サンプル">
+          <div class="today-sample-head">
+            <h2>今日の対応サンプル</h2>
+            <span>管理者だけ表示</span>
+          </div>
+          <p>今日の実データがない時でも、カードの見え方を確認できます。これは実データではありません。</p>
+          ${demoTodayTasks().map((task) => taskCard(task, { compact: true })).join('')}
+        </section>
+      `;
+    }
+
     function renderToday() {
       showOnly('today');
       const todayList = todayTasks.length
@@ -1489,7 +1616,7 @@
           ${todayTasks.map((task) => taskCard(task, { compact: true, focus: task.taskId === qs.get('taskId') })).join('')}
         `
         : '';
-      el('todayView').innerHTML = previewNoticeHtml() + renderTodayHome() + todayList;
+      el('todayView').innerHTML = previewNoticeHtml() + renderTodayHome() + renderTodaySample() + todayList;
     }
 
     function renderCases() {
@@ -1504,9 +1631,58 @@
       return `<button type="button" data-calendar-mode="${mode}" class="${active ? 'active' : ''}" aria-pressed="${active ? 'true' : 'false'}">${label}</button>`;
     }
 
+    function calendarBaseDate() {
+      if (!(calendarCursorDate instanceof Date) || Number.isNaN(calendarCursorDate.getTime())) {
+        calendarCursorDate = todayDate();
+      }
+      return new Date(calendarCursorDate.getFullYear(), calendarCursorDate.getMonth(), calendarCursorDate.getDate());
+    }
+
+    function shiftCalendarCursor(direction) {
+      const step = Number(direction || 0);
+      if (!step) return;
+      const base = calendarBaseDate();
+      calendarCursorDate = calendarMode === 'month'
+        ? new Date(base.getFullYear(), base.getMonth() + step, 1)
+        : addDays(base, step * 7);
+      selectedCalendarDate = '';
+    }
+
+    function resetCalendarCursor() {
+      calendarCursorDate = todayDate();
+      selectedCalendarDate = '';
+    }
+
+    function calendarRangeLabel() {
+      const base = calendarBaseDate();
+      if (calendarMode === 'week') {
+        const start = startOfWeek(base);
+        return `${formatShortDate(start)} - ${formatShortDate(addDays(start, 6))}`;
+      }
+      if (calendarMode === 'month') {
+        return `${base.getFullYear()}年${base.getMonth() + 1}月`;
+      }
+      return '日付別一覧';
+    }
+
+    function calendarNavigationHtml() {
+      if (calendarMode === 'list') return '';
+      const previousLabel = calendarMode === 'month' ? '前月' : '前週';
+      const nextLabel = calendarMode === 'month' ? '次月' : '次週';
+      return `
+        <div class="calendar-nav" aria-label="予定表の期間移動">
+          <button type="button" class="secondary" data-calendar-shift="-1" aria-label="${previousLabel}">前</button>
+          <div class="calendar-nav-label">
+            <b>${escapeHtml(calendarRangeLabel())}</b>
+            <button type="button" data-calendar-today="1">今日へ戻る</button>
+          </div>
+          <button type="button" class="secondary" data-calendar-shift="1" aria-label="${nextLabel}">次</button>
+        </div>
+      `;
+    }
+
     function tasksForCalendarMode() {
-      const today = new Date();
-      const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const base = calendarBaseDate();
       if (calendarMode === 'list') return calendarItems.slice();
       if (calendarMode === 'week') {
         const start = startOfWeek(base);
@@ -1547,14 +1723,13 @@
 
     function renderCalendarGrid(items) {
       const grouped = calendarItemsByDate(items);
-      const today = new Date();
-      const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const base = calendarBaseDate();
       if (calendarMode === 'week') {
         const start = startOfWeek(base);
         return `
           <article class="card calendar-panel">
             <div class="section-title">
-              <h2>今週</h2>
+              <h2>週表示</h2>
               <span>${formatShortDate(start)} - ${formatShortDate(addDays(start, 6))}</span>
             </div>
             <div class="calendar-grid">
@@ -1570,7 +1745,7 @@
         return `
           <article class="card calendar-panel">
             <div class="section-title">
-              <h2>${base.getFullYear()}年${base.getMonth() + 1}月</h2>
+              <h2>月表示</h2>
               <span>${items.length}件</span>
             </div>
             <div class="calendar-grid">
@@ -1621,10 +1796,11 @@
         : 'この範囲の予定はありません。';
       el('calendarView').innerHTML = previewNoticeHtml() + `
         <div class="calendar-toolbar">
-          ${calendarModeButton('week', '今週')}
-          ${calendarModeButton('month', '今月')}
+          ${calendarModeButton('week', '週表示')}
+          ${calendarModeButton('month', '月表示')}
           ${calendarModeButton('list', '日付別')}
         </div>
+        ${calendarNavigationHtml()}
         ${calendarItems.length ? renderCalendarGrid(visibleItems) : ''}
         ${selectedCalendarFilterHtml()}
         ${calendarItems.length ? renderAgendaList(agendaItems, agendaEmptyText) : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>'}
@@ -2029,6 +2205,14 @@
         if (button.dataset.calendarMode) {
           calendarMode = button.dataset.calendarMode;
           selectedCalendarDate = '';
+          renderCalendar();
+        }
+        else if (button.dataset.calendarShift) {
+          shiftCalendarCursor(button.dataset.calendarShift);
+          renderCalendar();
+        }
+        else if (button.dataset.calendarToday) {
+          resetCalendarCursor();
           renderCalendar();
         }
         else if (button.dataset.calendarDate) {
