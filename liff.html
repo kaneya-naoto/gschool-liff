@@ -379,7 +379,7 @@
 
     function setUser(user) {
       currentUser = user;
-      el('user').textContent = user ? `${user.displayName || user.linkedName || '利用者'} / ${user.role || ''}` : '';
+      el('user').textContent = user ? `${user.displayName || '利用者'} / ${user.role || ''}` : '';
     }
 
     function setLineProfile(profile, suffix) {
