@@ -152,6 +152,7 @@
       margin-top: 10px;
     }
     .empty,
+    .notice,
     .error {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -159,6 +160,14 @@
       padding: 18px 14px;
       color: var(--muted);
       text-align: center;
+    }
+    .notice {
+      border-color: #b9d3f7;
+      color: #1f4f85;
+      background: #f4f8ff;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     .error {
       border-color: #f0b8b8;
@@ -247,11 +256,12 @@
       return 'pending';
     }
 
-    function showMessage(text, error) {
+    function showMessage(text, type) {
+      const kind = type === true ? 'error' : (type || 'empty');
       el('message').innerHTML = text
-        ? `<div class="${error ? 'error' : 'empty'}">${escapeHtml(text)}</div>`
+        ? `<div class="${kind}">${escapeHtml(text)}</div>`
         : '';
-      if (error) renderDebugPanel(true);
+      if (kind === 'error') renderDebugPanel(true);
     }
 
     function debugBase() {
@@ -288,7 +298,6 @@
             item.settingsRow ? `settingsRow=${item.settingsRow}` : '',
             item.registered === true || item.registered === false ? `registered=${item.registered}` : '',
             item.active === true || item.active === false ? `active=${item.active}` : '',
-            item.lineUserId ? `lineUserId=${item.lineUserId}` : '',
           ].filter(Boolean);
           return parts.join(' | ');
         })
@@ -358,44 +367,37 @@
 
     function setLineProfile(profile, suffix) {
       const name = (profile && profile.displayName) || 'LINE利用者';
-      const id = (profile && profile.lineUserId) || '';
-      el('user').textContent = `${name}${suffix ? ' / ' + suffix : ''}${id ? ' / ' + id : ''}`;
+      el('user').textContent = `${name}${suffix ? ' / ' + suffix : ''}`;
     }
 
     function registrationMessage(identity) {
-      const profile = (identity && identity.profile) || {};
       if (identity && identity.registered && !identity.active) {
         return [
-          'このLINEユーザーの登録行はありますが、まだ有効化されていません。',
-          '',
-          `LINE userId: ${profile.lineUserId || '取得できませんでした'}`,
-          profile.displayName ? `LINE表示名: ${profile.displayName}` : '',
-          '',
-          '管理者が「設定_利用者」で紐づけ名、権限、有効を確認してください。',
+          '登録申請は受け付け済みです。',
+          '管理者の確認が終わると、この画面で担当作業を確認できるようになります。',
+          'しばらくしてから開き直してください。',
         ].filter(Boolean).join('\n');
       }
       return [
-        'このLINEユーザーはまだ登録されていません。',
-        '',
-        `LINE userId: ${profile.lineUserId || '取得できませんでした'}`,
-        profile.displayName ? `LINE表示名: ${profile.displayName}` : '',
-        '',
-        'スプレッドシートの「設定_利用者」に上のLINE userIdを登録してください。',
+        'このLINEアカウントは、まだ利用登録されていません。',
+        '下のボタンから利用登録を申請してください。',
       ].filter(Boolean).join('\n');
     }
 
     function showRegistration(identity, extraMessage) {
       lastIdentity = identity || null;
       const text = [registrationMessage(identity), extraMessage || ''].filter(Boolean).join('\n\n');
-      showMessage(text, true);
+      showMessage(text, 'notice');
       el('todayView').hidden = false;
       el('casesView').hidden = true;
       el('detailView').hidden = true;
-      el('todayView').innerHTML = `
-        <div class="actions">
-          <button class="primary" type="button" data-request-registration="1">登録申請を作る</button>
-        </div>
-      `;
+      el('todayView').innerHTML = identity && identity.registered
+        ? '<div class="empty">管理者の確認待ちです。</div>'
+        : `
+          <div class="actions">
+            <button class="primary" type="button" data-request-registration="1">利用登録を申請する</button>
+          </div>
+        `;
     }
 
     function callServerApi(payload) {
@@ -578,8 +580,8 @@
       }
       setLoading('登録申請を確認しています。');
       const identity = await api('whoami');
-      if (identity && identity.profile) setLineProfile(identity.profile, identity.active ? '登録済み' : '有効化待ち');
-      showRegistration(identity, result.message || '登録申請を作成しました。');
+      if (identity && identity.profile) setLineProfile(identity.profile, identity.active ? '登録済み' : '確認待ち');
+      showRegistration(identity, result && result.requested ? '申請を送信しました。管理者の確認をお待ちください。' : '');
     }
 
     document.addEventListener('click', async (event) => {
@@ -629,7 +631,7 @@
         setLoading('LINE連携情報を確認しています。');
         const identity = await api('whoami');
         lastIdentity = identity || null;
-        if (identity && identity.profile) setLineProfile(identity.profile, identity.registered ? '登録済み' : '未登録');
+        if (identity && identity.profile) setLineProfile(identity.profile, identity.registered ? (identity.active ? '登録済み' : '確認待ち') : '未登録');
         if (!identity.registered) {
           debugLog('identity_unregistered', {
             lineUserId: identity.profile && identity.profile.lineUserId,
@@ -643,8 +645,7 @@
             lineUserId: identity.profile && identity.profile.lineUserId,
             displayName: identity.profile && identity.profile.displayName,
           });
-          showMessage(identity.message || 'このLINEユーザーは無効です。管理者に確認してください。', true);
-          el('todayView').innerHTML = '';
+          showRegistration(identity);
           return;
         }
         if (identity.user) setUser(identity.user);
