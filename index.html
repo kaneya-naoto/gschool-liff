@@ -21,6 +21,7 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      padding-bottom: 82px;
       background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -50,6 +51,38 @@
       max-width: 720px;
       margin: 0 auto;
       padding: 12px;
+    }
+    .home-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .summary-item,
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 9px;
+      min-width: 0;
+    }
+    .summary-item b,
+    .metric b {
+      display: block;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+    .summary-item span,
+    .metric span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
     }
     .tabs {
       display: grid;
@@ -151,6 +184,39 @@
       gap: 8px;
       margin-top: 10px;
     }
+    .bottom-menu {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 8;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 1px;
+      border-top: 1px solid var(--line);
+      background: var(--line);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .menu-btn {
+      min-height: 62px;
+      border: 0;
+      border-radius: 0;
+      background: #fff;
+      color: #384253;
+      padding: 6px 2px;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .menu-btn b {
+      display: block;
+      font-size: 18px;
+      line-height: 1.1;
+      margin-bottom: 2px;
+    }
+    .menu-btn.active {
+      background: #eaf2ff;
+      color: #0c4a9e;
+    }
     .empty,
     .notice,
     .error {
@@ -207,23 +273,32 @@
 </head>
 <body>
   <header>
-    <h1>今日やること</h1>
+    <h1>マイページ</h1>
     <div id="user" class="user"></div>
+    <div id="homeSummary" class="home-summary" hidden></div>
   </header>
   <main>
-    <div class="tabs">
-      <button id="tabToday" class="tab active" type="button">今日やること</button>
-      <button id="tabCases" class="tab" type="button">担当案件</button>
-    </div>
     <div id="message"></div>
     <section id="todayView" class="stack"></section>
     <section id="casesView" class="stack" hidden></section>
+    <section id="calendarView" class="stack" hidden></section>
+    <section id="monthlyView" class="stack" hidden></section>
+    <section id="alertsView" class="stack" hidden></section>
+    <section id="settingsView" class="stack" hidden></section>
     <section id="detailView" class="stack" hidden></section>
     <details id="debugPanel" class="debug" hidden>
       <summary>LIFFデバッグ</summary>
       <pre id="debugLog"></pre>
     </details>
   </main>
+  <nav class="bottom-menu" aria-label="Gスクイールメニュー">
+    <button class="menu-btn active" type="button" data-view="today"><b>今</b>今日</button>
+    <button class="menu-btn" type="button" data-view="cases"><b>件</b>案件</button>
+    <button class="menu-btn" type="button" data-view="calendar"><b>予</b>予定</button>
+    <button class="menu-btn" type="button" data-view="monthly"><b>月</b>月次</button>
+    <button class="menu-btn" type="button" data-view="alerts"><b>注</b>アラート</button>
+    <button class="menu-btn" type="button" data-view="settings"><b>設</b>設定</button>
+  </nav>
 
   <script>
     const LIFF_ID = "2010221787-EQOsOECT";
@@ -232,6 +307,9 @@
     let currentUser = null;
     let todayTasks = [];
     let cases = [];
+    let calendarItems = [];
+    let monthlySummary = null;
+    let alertsSummary = null;
     let activeCaseId = '';
     let lastIdentity = null;
 
@@ -239,6 +317,16 @@
     const qs = new URLSearchParams(location.search);
     const DEBUG_MODE = qs.get('debug') === '1';
     const clientDebugEvents = [];
+    const VIEW_TITLES = {
+      today: '今日やること',
+      cases: '担当案件',
+      calendar: '予定',
+      monthly: '月次確認',
+      alerts: 'アラート',
+      settings: '設定',
+    };
+    const DEFAULT_VIEW = VIEW_TITLES[qs.get('view')] ? qs.get('view') : 'today';
+    let currentView = DEFAULT_VIEW;
 
     function escapeHtml(value) {
       return String(value || '')
@@ -356,8 +444,49 @@
     function setLoading(text) {
       el('todayView').hidden = false;
       el('casesView').hidden = true;
+      el('calendarView').hidden = true;
+      el('monthlyView').hidden = true;
+      el('alertsView').hidden = true;
+      el('settingsView').hidden = true;
       el('detailView').hidden = true;
       el('todayView').innerHTML = `<div class="loading">${escapeHtml(text || '読み込み中です。')}</div>`;
+    }
+
+    function allViews() {
+      return ['today', 'cases', 'calendar', 'monthly', 'alerts', 'settings'];
+    }
+
+    function setActiveMenu(view) {
+      document.querySelectorAll('.menu-btn').forEach((button) => {
+        button.classList.toggle('active', button.dataset.view === view);
+      });
+    }
+
+    function showOnly(view) {
+      currentView = view;
+      allViews().forEach((name) => {
+        const node = el(`${name}View`);
+        if (node) node.hidden = name !== view;
+      });
+      el('detailView').hidden = true;
+      activeCaseId = '';
+      setActiveMenu(view);
+      document.querySelector('h1').textContent = VIEW_TITLES[view] || 'マイページ';
+    }
+
+    function updateHomeSummary() {
+      const node = el('homeSummary');
+      if (!currentUser || !node) {
+        if (node) node.hidden = true;
+        return;
+      }
+      const alertCount = alertsSummary ? alertsSummary.alertCount : 0;
+      node.hidden = false;
+      node.innerHTML = `
+        <div class="summary-item"><b>${escapeHtml(todayTasks.length)}</b><span>今日</span></div>
+        <div class="summary-item"><b>${escapeHtml(cases.length)}</b><span>案件</span></div>
+        <div class="summary-item"><b>${escapeHtml(alertCount)}</b><span>注意</span></div>
+      `;
     }
 
     function withTimeout(promise, label, ms = 15000) {
@@ -380,6 +509,7 @@
     function setUser(user) {
       currentUser = user;
       el('user').textContent = user ? `${user.displayName || '利用者'} / ${user.role || ''}` : '';
+      updateHomeSummary();
     }
 
     function setLineProfile(profile, suffix) {
@@ -407,6 +537,10 @@
       showMessage(text, 'notice');
       el('todayView').hidden = false;
       el('casesView').hidden = true;
+      el('calendarView').hidden = true;
+      el('monthlyView').hidden = true;
+      el('alertsView').hidden = true;
+      el('settingsView').hidden = true;
       el('detailView').hidden = true;
       el('todayView').innerHTML = identity && identity.registered
         ? '<div class="empty">管理者の確認待ちです。確認が終わると、今日やることがここに表示されます。</div>'
@@ -508,7 +642,7 @@
           <p class="title">${escapeHtml(item.title)}</p>
           <div class="meta">
             <span>${escapeHtml(item.caseType)}</span>
-            <span>${escapeHtml(item.primaryAssignee || '担当未設定')}</span>
+            <span>${escapeHtml(item.assignee || '担当未設定')}</span>
           </div>
           <div class="meta">${badges}</div>
           <div class="actions">
@@ -519,29 +653,94 @@
     }
 
     function renderToday() {
-      el('todayView').hidden = false;
-      el('casesView').hidden = true;
-      el('detailView').hidden = true;
-      activeCaseId = '';
-      el('tabToday').classList.add('active');
-      el('tabCases').classList.remove('active');
-      document.querySelector('h1').textContent = '今日やること';
+      showOnly('today');
       el('todayView').innerHTML = todayTasks.length
         ? todayTasks.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
         : '<div class="empty">今日すぐ対応が必要な作業はありません。担当中の案件は「担当案件」から確認できます。</div>';
     }
 
     function renderCases() {
-      el('todayView').hidden = true;
-      el('casesView').hidden = false;
-      el('detailView').hidden = true;
-      activeCaseId = '';
-      el('tabToday').classList.remove('active');
-      el('tabCases').classList.add('active');
-      document.querySelector('h1').textContent = '担当案件';
+      showOnly('cases');
       el('casesView').innerHTML = cases.length
         ? cases.map(caseCard).join('')
         : '<div class="empty">表示できる担当案件はまだありません。案件が割り当てられると、ここに表示されます。</div>';
+    }
+
+    function renderCalendar() {
+      showOnly('calendar');
+      el('calendarView').innerHTML = calendarItems.length
+        ? calendarItems.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
+        : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>';
+    }
+
+    function summaryMetric(label, value, className = '') {
+      return `<div class="metric ${className}"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`;
+    }
+
+    function renderMonthly() {
+      showOnly('monthly');
+      const s = monthlySummary || {};
+      const metrics = [
+        summaryMetric('案件', s.caseCount || 0),
+        summaryMetric('未完了', s.incompleteCount || 0),
+        summaryMetric('期限超過', s.overdueCount || 0),
+        summaryMetric('期限接近', s.approachingCount || 0),
+        summaryMetric('完了', s.completedCount || 0),
+        summaryMetric('工程', s.taskCount || 0),
+      ].join('');
+      const items = (s.items || []).length
+        ? (s.items || []).map((task) => taskCard(task)).join('')
+        : '<div class="empty">この月の担当予定はありません。</div>';
+      el('monthlyView').innerHTML = `
+        <article class="card">
+          <p class="title">${escapeHtml(s.monthLabel || '月次確認')}</p>
+          <div class="metric-grid">${metrics}</div>
+        </article>
+        ${items}
+      `;
+    }
+
+    function renderAlerts() {
+      showOnly('alerts');
+      const s = alertsSummary || {};
+      const metrics = [
+        summaryMetric('期限超過', s.overdueCount || 0, 'danger'),
+        summaryMetric('期限接近', s.approachingCount || 0),
+        summaryMetric('社長確認', s.presidentCheckCount || 0),
+      ].join('');
+      const items = (s.items || []).length
+        ? (s.items || []).map((task) => taskCard(task)).join('')
+        : '<div class="empty">現在の要注意作業はありません。</div>';
+      el('alertsView').innerHTML = `
+        <article class="card">
+          <p class="title">アラート</p>
+          <div class="metric-grid">${metrics}</div>
+        </article>
+        ${items}
+      `;
+    }
+
+    function renderSettings() {
+      showOnly('settings');
+      const user = currentUser || {};
+      el('settingsView').innerHTML = `
+        <article class="card">
+          <p class="title">${escapeHtml(user.displayName || '利用者')}</p>
+          <div class="row"><b>権限</b><span>${escapeHtml(user.role || '')}</span></div>
+          <div class="row"><b>区分</b><span>${escapeHtml(user.type || '')}</span></div>
+          <div class="row"><b>利用者ID</b><span>${escapeHtml(user.userId || '')}</span></div>
+        </article>
+        <div class="notice">表示内容や担当案件が違う場合は、管理者に設定_利用者と担当割当の確認を依頼してください。</div>
+      `;
+    }
+
+    function renderView(view) {
+      if (view === 'cases') renderCases();
+      else if (view === 'calendar') renderCalendar();
+      else if (view === 'monthly') renderMonthly();
+      else if (view === 'alerts') renderAlerts();
+      else if (view === 'settings') renderSettings();
+      else renderToday();
     }
 
     async function renderDetail(caseId, taskId = '') {
@@ -549,9 +748,12 @@
       const data = await api('getCase', { caseId, taskId });
       el('todayView').hidden = true;
       el('casesView').hidden = true;
+      el('calendarView').hidden = true;
+      el('monthlyView').hidden = true;
+      el('alertsView').hidden = true;
+      el('settingsView').hidden = true;
       el('detailView').hidden = false;
-      el('tabToday').classList.remove('active');
-      el('tabCases').classList.remove('active');
+      setActiveMenu('');
       document.querySelector('h1').textContent = data.case.title;
       activeCaseId = data.case.caseId;
       el('detailView').innerHTML = data.tasks.length
@@ -560,10 +762,19 @@
     }
 
     async function reloadData() {
-      const today = await api('todayTasks');
+      const [today, caseData, calendarData, monthlyData, alertsData] = await Promise.all([
+        api('todayTasks'),
+        api('listCases'),
+        api('calendar'),
+        api('monthlySummary'),
+        api('alertsSummary'),
+      ]);
       todayTasks = today.tasks || [];
-      const caseData = await api('listCases');
       cases = caseData.cases || [];
+      calendarItems = calendarData.items || [];
+      monthlySummary = monthlyData.summary || null;
+      alertsSummary = alertsData.summary || null;
+      updateHomeSummary();
     }
 
     async function completeTask(taskId, reopen) {
@@ -574,7 +785,7 @@
       if (visibleDetail) {
         if (activeCaseId) await renderDetail(activeCaseId, taskId);
       } else {
-        renderToday();
+        renderView(currentView);
       }
     }
 
@@ -592,7 +803,7 @@
         if (result.user) setUser(result.user);
         setLoading('案件情報を読み込んでいます。');
         await reloadData();
-        renderToday();
+        renderView(DEFAULT_VIEW);
         return;
       }
       setLoading('登録申請を確認しています。');
@@ -605,8 +816,7 @@
       const button = event.target.closest('button');
       if (!button) return;
       try {
-        if (button.id === 'tabToday') renderToday();
-        else if (button.id === 'tabCases') renderCases();
+        if (button.dataset.view) renderView(button.dataset.view);
         else if (button.dataset.case) await renderDetail(button.dataset.case);
         else if (button.dataset.complete) await completeTask(button.dataset.complete, false);
         else if (button.dataset.reopen) await completeTask(button.dataset.reopen, true);
@@ -675,7 +885,7 @@
         const caseId = qs.get('caseId');
         const taskId = qs.get('taskId');
         if (caseId || taskId) await renderDetail(caseId || '', taskId || '');
-        else renderToday();
+        else renderView(DEFAULT_VIEW);
       } catch (err) {
         debugLog('start_error', {
           level: 'ERROR',
