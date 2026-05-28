@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gスクイール</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --text: #20242a;
+      --muted: #657083;
+      --line: #d9dee7;
+      --accent: #1267d8;
+      --danger: #c83232;
+      --warn: #a66a00;
+      --ok: #18794e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 14px 10px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .user {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      min-height: 18px;
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab,
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      min-height: 42px;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .tab.active {
+      border-color: var(--accent);
+      background: #eaf2ff;
+      color: #0c4a9e;
+    }
+    .primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+    .secondary {
+      color: var(--muted);
+      background: #fff;
+    }
+    .danger {
+      border-color: #f2c0c0;
+      color: var(--danger);
+      background: #fff7f7;
+    }
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .card:target,
+    .card.focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(18, 103, 216, 0.12);
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 750;
+      margin: 0 0 4px;
+      word-break: break-word;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 2px 9px;
+      background: #eef1f5;
+      color: #495267;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .badge.overdue { background: #ffecec; color: var(--danger); }
+    .badge.near { background: #fff3d8; color: var(--warn); }
+    .badge.done { background: #e7f6ee; color: var(--ok); }
+    .badge.pending { background: #eef1f5; color: #495267; }
+    .row {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .row b {
+      color: #394150;
+      font-weight: 650;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .empty,
+    .error {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 18px 14px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .error {
+      border-color: #f0b8b8;
+      color: var(--danger);
+      background: #fff8f8;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .loading {
+      color: var(--muted);
+      text-align: center;
+      padding: 20px 0;
+    }
+    .debug {
+      margin-top: 12px;
+      border: 1px dashed #b8c0cc;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      color: #394150;
+      font-size: 12px;
+      word-break: break-word;
+    }
+    .debug summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .debug pre {
+      margin: 8px 0 0;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>今日やること</h1>
+    <div id="user" class="user"></div>
+  </header>
+  <main>
+    <div class="tabs">
+      <button id="tabToday" class="tab active" type="button">今日やること</button>
+      <button id="tabCases" class="tab" type="button">担当案件</button>
+    </div>
+    <div id="message"></div>
+    <section id="todayView" class="stack"></section>
+    <section id="casesView" class="stack" hidden></section>
+    <section id="detailView" class="stack" hidden></section>
+    <details id="debugPanel" class="debug" hidden>
+      <summary>LIFFデバッグ</summary>
+      <pre id="debugLog"></pre>
+    </details>
+  </main>
+
+  <script>
+    const LIFF_ID = "2010221787-EQOsOECT";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxp4msQecWB1hSO-iApaAF7dUTDkWeHftfhLQP1rKryT5VzlJv_HyUKTIgReKarq91ZsQ/exec";
+    let idToken = '';
+    let currentUser = null;
+    let todayTasks = [];
+    let cases = [];
+    let activeCaseId = '';
+    let lastIdentity = null;
+
+    const el = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(location.search);
+    const DEBUG_MODE = qs.get('debug') === '1';
+    const clientDebugEvents = [];
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function badgeClass(status) {
+      if (status === '期限超過') return 'overdue';
+      if (status === '期限接近') return 'near';
+      if (status === '完了') return 'done';
+      return 'pending';
+    }
+
+    function showMessage(text, error) {
+      el('message').innerHTML = text
+        ? `<div class="${error ? 'error' : 'empty'}">${escapeHtml(text)}</div>`
+        : '';
+      if (error) renderDebugPanel(true);
+    }
+
+    function debugBase() {
+      return {
+        href: location.href,
+        path: location.pathname,
+        search: location.search,
+        userAgent: navigator.userAgent,
+        hasGoogleScriptRun: typeof google !== 'undefined' && !!(google.script && google.script.run),
+        hasLiff: typeof liff !== 'undefined',
+        liffIdSet: !!LIFF_ID,
+        apiUrlSet: !!API_URL,
+        screen: `${window.innerWidth}x${window.innerHeight}`,
+      };
+    }
+
+    function renderDebugPanel(force) {
+      const panel = el('debugPanel');
+      const log = el('debugLog');
+      if (!panel || !log) return;
+      if (!DEBUG_MODE && !force) return;
+      panel.hidden = false;
+      log.textContent = clientDebugEvents
+        .slice(-30)
+        .map((item) => {
+          const parts = [
+            item.at,
+            item.level || 'INFO',
+            item.stage,
+            item.message || item.error || '',
+            item.transport ? `transport=${item.transport}` : '',
+            item.lineUserId ? `lineUserId=${item.lineUserId}` : '',
+          ].filter(Boolean);
+          return parts.join(' | ');
+        })
+        .join('\n');
+    }
+
+    function debugLog(stage, details = {}) {
+      const event = {
+        ...debugBase(),
+        ...details,
+        at: new Date().toISOString(),
+        stage,
+        level: details.level || 'INFO',
+      };
+      delete event.idToken;
+      delete event.token;
+      clientDebugEvents.push(event);
+      renderDebugPanel(false);
+      if (!DEBUG_MODE) return;
+      try {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withFailureHandler(() => {})
+            .callLiffApi({ action: 'debugLog', event });
+          return;
+        }
+        if (API_URL) {
+          fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'debugLog', event }),
+          }).catch(() => {});
+        }
+      } catch (err) {
+        // デバッグログ送信自体の失敗で本処理を止めない。
+      }
+    }
+
+    function setLoading(text) {
+      el('todayView').hidden = false;
+      el('casesView').hidden = true;
+      el('detailView').hidden = true;
+      el('todayView').innerHTML = `<div class="loading">${escapeHtml(text || '読み込み中です。')}</div>`;
+    }
+
+    function withTimeout(promise, label, ms = 15000) {
+      let timer = null;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label}がタイムアウトしました。LINEアプリ内で開き直してください。`));
+        }, ms);
+      });
+      return Promise.race([promise, timeout]).finally(() => {
+        if (timer) clearTimeout(timer);
+      });
+    }
+
+    function isAppsScriptSandboxHost() {
+      return location.hostname.indexOf('script.googleusercontent.com') >= 0
+        && location.pathname.indexOf('/userCodeAppPanel') >= 0;
+    }
+
+    function setUser(user) {
+      currentUser = user;
+      el('user').textContent = user ? `${user.displayName || user.linkedName || '利用者'} / ${user.role || ''}` : '';
+    }
+
+    function setLineProfile(profile, suffix) {
+      const name = (profile && profile.displayName) || 'LINE利用者';
+      const id = (profile && profile.lineUserId) || '';
+      el('user').textContent = `${name}${suffix ? ' / ' + suffix : ''}${id ? ' / ' + id : ''}`;
+    }
+
+    function registrationMessage(identity) {
+      const profile = (identity && identity.profile) || {};
+      if (identity && identity.registered && !identity.active) {
+        return [
+          'このLINEユーザーの登録行はありますが、まだ有効化されていません。',
+          '',
+          `LINE userId: ${profile.lineUserId || '取得できませんでした'}`,
+          profile.displayName ? `LINE表示名: ${profile.displayName}` : '',
+          '',
+          '管理者が「設定_利用者」で紐づけ名、権限、有効を確認してください。',
+        ].filter(Boolean).join('\n');
+      }
+      return [
+        'このLINEユーザーはまだ登録されていません。',
+        '',
+        `LINE userId: ${profile.lineUserId || '取得できませんでした'}`,
+        profile.displayName ? `LINE表示名: ${profile.displayName}` : '',
+        '',
+        'スプレッドシートの「設定_利用者」に上のLINE userIdを登録してください。',
+      ].filter(Boolean).join('\n');
+    }
+
+    function showRegistration(identity, extraMessage) {
+      lastIdentity = identity || null;
+      const text = [registrationMessage(identity), extraMessage || ''].filter(Boolean).join('\n\n');
+      showMessage(text, true);
+      el('todayView').hidden = false;
+      el('casesView').hidden = true;
+      el('detailView').hidden = true;
+      el('todayView').innerHTML = `
+        <div class="actions">
+          <button class="primary" type="button" data-request-registration="1">登録申請を作る</button>
+        </div>
+      `;
+    }
+
+    function callServerApi(payload) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        debugLog('transport_selected', { transport: 'google.script.run', action: payload && payload.action });
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler((err) => {
+              reject(new Error((err && err.message) || String(err || 'Apps Script APIエラー')));
+            })
+            .callLiffApi(payload);
+        });
+      }
+      debugLog('transport_selected', { transport: 'fetch', action: payload && payload.action });
+      return fetch(API_URL || location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+      }).then(async (response) => {
+        const text = await response.text();
+        try {
+          return JSON.parse(text || '{}');
+        } catch (err) {
+          throw new Error('LIFF APIの応答を読み取れませんでした。Web Appの公開設定を確認してください。');
+        }
+      });
+    }
+
+    async function api(action, body = {}) {
+      debugLog('api_start', { action, hasIdToken: !!idToken });
+      try {
+        const result = await withTimeout(
+          callServerApi({ ...body, action, idToken }),
+          'LIFF API通信'
+        );
+        if (!result.ok) throw new Error(result.error || 'APIエラー');
+        if (result.data && result.data.user) setUser(result.data.user);
+        debugLog('api_success', {
+          action,
+          registered: result.data && result.data.registered,
+          active: result.data && result.data.active,
+          lineUserId: result.data && result.data.profile && result.data.profile.lineUserId,
+          displayName: result.data && result.data.profile && result.data.profile.displayName,
+        });
+        return result.data;
+      } catch (err) {
+        debugLog('api_error', {
+          level: 'ERROR',
+          action,
+          error: err.message || String(err),
+        });
+        throw err;
+      }
+    }
+
+    function taskCard(task, options = {}) {
+      const focus = options.focus ? ' focus' : '';
+      const detailButton = `<button class="secondary" type="button" data-case="${escapeHtml(task.caseId)}">案件を見る</button>`;
+      const actionButton = task.completed
+        ? `<button class="danger" type="button" data-reopen="${escapeHtml(task.taskId)}">未完了に戻す</button>`
+        : `<button class="primary" type="button" data-complete="${escapeHtml(task.taskId)}">完了にする</button>`;
+      return `
+        <article id="task-${escapeHtml(task.taskId)}" class="card${focus}">
+          <p class="title">${escapeHtml(task.taskName)}</p>
+          <div class="meta">
+            <span class="badge ${badgeClass(task.status)}">${escapeHtml(task.status)}</span>
+            <span>${escapeHtml(task.dueDate || '期日未設定')}</span>
+            <span>${escapeHtml(task.assignee || '担当未設定')}</span>
+          </div>
+          <div class="row"><b>案件</b><span>${escapeHtml(task.caseTitle)}</span></div>
+          ${task.locationName ? `<div class="row"><b>場所</b><span>${escapeHtml(task.locationName)}</span></div>` : ''}
+          ${task.targetName ? `<div class="row"><b>対象</b><span>${escapeHtml(task.targetName)}</span></div>` : ''}
+          ${task.vendorName ? `<div class="row"><b>手配先</b><span>${escapeHtml(task.vendorName)}</span></div>` : ''}
+          ${task.note ? `<div class="row"><b>メモ</b><span>${escapeHtml(task.note)}</span></div>` : ''}
+          <div class="actions">${actionButton}${detailButton}</div>
+        </article>
+      `;
+    }
+
+    function caseCard(item) {
+      const badges = [
+        item.overdueCount ? `<span class="badge overdue">期限超過 ${item.overdueCount}</span>` : '',
+        item.approachingCount ? `<span class="badge near">期限接近 ${item.approachingCount}</span>` : '',
+        `<span class="badge pending">未完了 ${item.incompleteCount}</span>`,
+      ].join('');
+      return `
+        <article class="card">
+          <p class="title">${escapeHtml(item.title)}</p>
+          <div class="meta">
+            <span>${escapeHtml(item.caseType)}</span>
+            <span>${escapeHtml(item.primaryAssignee || '担当未設定')}</span>
+          </div>
+          <div class="meta">${badges}</div>
+          <div class="actions">
+            <button class="primary" type="button" data-case="${escapeHtml(item.caseId)}">作業を見る</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderToday() {
+      el('todayView').hidden = false;
+      el('casesView').hidden = true;
+      el('detailView').hidden = true;
+      activeCaseId = '';
+      el('tabToday').classList.add('active');
+      el('tabCases').classList.remove('active');
+      document.querySelector('h1').textContent = '今日やること';
+      el('todayView').innerHTML = todayTasks.length
+        ? todayTasks.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
+        : '<div class="empty">今すぐ対応が必要な作業はありません。</div>';
+    }
+
+    function renderCases() {
+      el('todayView').hidden = true;
+      el('casesView').hidden = false;
+      el('detailView').hidden = true;
+      activeCaseId = '';
+      el('tabToday').classList.remove('active');
+      el('tabCases').classList.add('active');
+      document.querySelector('h1').textContent = '担当案件';
+      el('casesView').innerHTML = cases.length
+        ? cases.map(caseCard).join('')
+        : '<div class="empty">表示できる担当案件はありません。</div>';
+    }
+
+    async function renderDetail(caseId, taskId = '') {
+      showMessage('');
+      const data = await api('getCase', { caseId, taskId });
+      el('todayView').hidden = true;
+      el('casesView').hidden = true;
+      el('detailView').hidden = false;
+      el('tabToday').classList.remove('active');
+      el('tabCases').classList.remove('active');
+      document.querySelector('h1').textContent = data.case.title;
+      activeCaseId = data.case.caseId;
+      el('detailView').innerHTML = data.tasks.length
+        ? data.tasks.map((task) => taskCard(task, { focus: task.taskId === data.focusTaskId })).join('')
+        : '<div class="empty">この案件の作業はありません。</div>';
+    }
+
+    async function reloadData() {
+      const today = await api('todayTasks');
+      todayTasks = today.tasks || [];
+      const caseData = await api('listCases');
+      cases = caseData.cases || [];
+    }
+
+    async function completeTask(taskId, reopen) {
+      showMessage('');
+      await api(reopen ? 'reopenTask' : 'completeTask', { taskId });
+      await reloadData();
+      const visibleDetail = !el('detailView').hidden;
+      if (visibleDetail) {
+        if (activeCaseId) await renderDetail(activeCaseId, taskId);
+      } else {
+        renderToday();
+      }
+    }
+
+    async function requestRegistration() {
+      setLoading('登録申請を作成しています。');
+      const result = await api('requestRegistration');
+      if (result && result.registered && result.active) {
+        if (result.user) setUser(result.user);
+        setLoading('案件情報を読み込んでいます。');
+        await reloadData();
+        renderToday();
+        return;
+      }
+      if (result && result.profile) setLineProfile(result.profile, result.active ? '登録済み' : '有効化待ち');
+      showRegistration(result, result.message || '登録申請を作成しました。');
+    }
+
+    document.addEventListener('click', async (event) => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      try {
+        if (button.id === 'tabToday') renderToday();
+        else if (button.id === 'tabCases') renderCases();
+        else if (button.dataset.case) await renderDetail(button.dataset.case);
+        else if (button.dataset.complete) await completeTask(button.dataset.complete, false);
+        else if (button.dataset.reopen) await completeTask(button.dataset.reopen, true);
+        else if (button.dataset.requestRegistration) await requestRegistration();
+      } catch (err) {
+        showMessage(err.message || String(err), true);
+      }
+    });
+
+    async function start() {
+      try {
+        debugLog('start');
+        setLoading('LIFF認証を確認しています。');
+        if (!LIFF_ID) throw new Error('LIFF_ID が未設定です。Apps Script のスクリプトプロパティを確認してください。');
+        if (isAppsScriptSandboxHost()) {
+          debugLog('gas_htmlservice_sandbox_detected', {
+            level: 'ERROR',
+            message: 'LIFF UI is running inside Apps Script HtmlService sandbox.',
+          });
+          throw new Error([
+            'この画面は Apps Script のサンドボックス内で開かれているため、LIFFを初期化できません。',
+            'GAS Web AppはAPI専用にし、LIFF Endpoint URLにはHTTPSで公開した静的HTMLのURLを設定してください。',
+          ].join('\n'));
+        }
+        if (typeof liff === 'undefined') {
+          throw new Error('LIFF SDKを読み込めませんでした。LINEアプリ内で開き直してください。');
+        }
+        debugLog('liff_init_start');
+        await withTimeout(liff.init({ liffId: LIFF_ID }), 'LIFF初期化');
+        debugLog('liff_init_success', { isLoggedIn: liff.isLoggedIn() });
+        if (!liff.isLoggedIn()) {
+          debugLog('liff_login_redirect');
+          liff.login({ redirectUri: location.href });
+          return;
+        }
+        idToken = liff.getIDToken();
+        debugLog('id_token_checked', { hasIdToken: !!idToken });
+        if (!idToken) throw new Error('LIFFのIDトークンを取得できませんでした。');
+        setLoading('LINE連携情報を確認しています。');
+        const identity = await api('whoami');
+        lastIdentity = identity || null;
+        if (identity && identity.profile) setLineProfile(identity.profile, identity.registered ? '登録済み' : '未登録');
+        if (!identity.registered) {
+          debugLog('identity_unregistered', {
+            lineUserId: identity.profile && identity.profile.lineUserId,
+            displayName: identity.profile && identity.profile.displayName,
+          });
+          showRegistration(identity);
+          return;
+        }
+        if (!identity.active) {
+          debugLog('identity_inactive', {
+            lineUserId: identity.profile && identity.profile.lineUserId,
+            displayName: identity.profile && identity.profile.displayName,
+          });
+          showMessage(identity.message || 'このLINEユーザーは無効です。管理者に確認してください。', true);
+          el('todayView').innerHTML = '';
+          return;
+        }
+        if (identity.user) setUser(identity.user);
+        setLoading('案件情報を読み込んでいます。');
+        await reloadData();
+        debugLog('data_loaded', {
+          lineUserId: identity.profile && identity.profile.lineUserId,
+          active: identity.active,
+        });
+        const caseId = qs.get('caseId');
+        const taskId = qs.get('taskId');
+        if (caseId || taskId) await renderDetail(caseId || '', taskId || '');
+        else renderToday();
+      } catch (err) {
+        debugLog('start_error', {
+          level: 'ERROR',
+          error: err.message || String(err),
+        });
+        showMessage(err.message || String(err), true);
+        el('todayView').innerHTML = '';
+      }
+    }
+
+    debugLog('script_loaded');
+    start();
+  </script>
+</body>
+</html>
