@@ -421,6 +421,8 @@
     let activeCaseId = '';
     let lastIdentity = null;
     let interactionLocked = false;
+    let homeSummary = null;
+    let loadedViews = {};
 
     const el = (id) => document.getElementById(id);
     const qs = new URLSearchParams(location.search);
@@ -722,11 +724,16 @@
         if (node) node.hidden = true;
         return;
       }
-      const alertCount = alertsSummary ? alertsSummary.alertCount : 0;
+      const summary = homeSummary || {};
+      const todayCount = summary.todayCount !== undefined ? summary.todayCount : todayTasks.length;
+      const caseCount = summary.caseCount !== undefined ? summary.caseCount : cases.length;
+      const alertCount = summary.alertCount !== undefined
+        ? summary.alertCount
+        : (alertsSummary ? alertsSummary.alertCount : 0);
       node.hidden = false;
       node.innerHTML = `
-        <div class="summary-item"><b>${escapeHtml(todayTasks.length)}</b><span>今日</span></div>
-        <div class="summary-item"><b>${escapeHtml(cases.length)}</b><span>案件</span></div>
+        <div class="summary-item"><b>${escapeHtml(todayCount)}</b><span>今日</span></div>
+        <div class="summary-item"><b>${escapeHtml(caseCount)}</b><span>案件</span></div>
         <div class="summary-item"><b>${escapeHtml(alertCount)}</b><span>注意</span></div>
       `;
     }
@@ -1171,22 +1178,38 @@
       hideLoadingOverlay();
     }
 
-    function applyDashboardData(data) {
+    function applyDashboardData(data, view) {
       const payload = data || {};
       previewInfo = payload.preview || null;
-      todayTasks = payload.todayTasks || [];
-      cases = payload.cases || [];
-      calendarItems = payload.calendarItems || [];
-      monthlySummary = payload.monthlySummary || null;
-      alertsSummary = payload.alertsSummary || null;
-      adminOptions = payload.adminOptions || null;
+      homeSummary = payload.homeSummary || homeSummary;
+      if (Object.prototype.hasOwnProperty.call(payload, 'todayTasks')) todayTasks = payload.todayTasks || [];
+      if (Object.prototype.hasOwnProperty.call(payload, 'cases')) cases = payload.cases || [];
+      if (Object.prototype.hasOwnProperty.call(payload, 'calendarItems')) calendarItems = payload.calendarItems || [];
+      if (Object.prototype.hasOwnProperty.call(payload, 'monthlySummary')) monthlySummary = payload.monthlySummary || null;
+      if (Object.prototype.hasOwnProperty.call(payload, 'alertsSummary')) alertsSummary = payload.alertsSummary || null;
+      if (Object.prototype.hasOwnProperty.call(payload, 'adminOptions')) adminOptions = payload.adminOptions || null;
+      if (view) loadedViews[view] = true;
       updateUserLabel();
       updateHomeSummary();
     }
 
-    async function reloadData() {
+    async function reloadData(view = currentView) {
+      const targetView = VIEW_TITLES[view] ? view : 'today';
       const scoped = previewUserId ? { previewUserId } : {};
-      applyDashboardData(await api('dashboard', scoped));
+      applyDashboardData(await api('dashboard', Object.assign({}, scoped, { view: targetView })), targetView);
+    }
+
+    async function openView(view) {
+      const targetView = VIEW_TITLES[view] ? view : 'today';
+      if (!loadedViews[targetView]) {
+        setLoading(`${VIEW_TITLES[targetView] || '画面'}を読み込んでいます。`);
+        await reloadData(targetView);
+      }
+      renderView(targetView);
+    }
+
+    function resetLoadedViews() {
+      loadedViews = {};
     }
 
     async function completeTask(taskId, reopen) {
@@ -1196,7 +1219,8 @@
       }
       showMessage('');
       await api(reopen ? 'reopenTask' : 'completeTask', { taskId });
-      await reloadData();
+      resetLoadedViews();
+      await reloadData(currentView);
       const visibleDetail = !el('detailView').hidden;
       if (visibleDetail) {
         if (activeCaseId) await renderDetail(activeCaseId, taskId);
@@ -1218,7 +1242,8 @@
       if (result && result.registered && result.active) {
         if (result.user) setUser(result.user);
         setLoading('案件情報を読み込んでいます。');
-        await reloadData();
+        resetLoadedViews();
+        await reloadData(DEFAULT_VIEW);
         renderView(DEFAULT_VIEW);
         return;
       }
@@ -1232,7 +1257,8 @@
       const select = el('previewUserId');
       previewUserId = select ? select.value : '';
       setLoading('担当者表示を確認しています。');
-      await reloadData();
+      resetLoadedViews();
+      await reloadData(currentView);
       renderView(currentView);
     }
 
@@ -1240,7 +1266,8 @@
       previewUserId = '';
       previewInfo = null;
       setLoading('表示を戻しています。');
-      await reloadData();
+      resetLoadedViews();
+      await reloadData(currentView);
       renderView(currentView);
     }
 
@@ -1254,7 +1281,8 @@
       setLoading('TESTサンプルを投入しています。');
       const data = await api('setupTestSamples', { targetUserId });
       previewUserId = targetUserId;
-      await reloadData();
+      resetLoadedViews();
+      await reloadData(currentView);
       renderSettings();
       const result = data.result || {};
       showMessage(`TESTサンプルを作成しました。\n案件ID: ${result.caseId || ''}\n割り当て先: ${result.targetDisplayName || result.targetUserId || ''}`, 'notice');
@@ -1269,7 +1297,8 @@
       const data = await api('cleanupTestSamples');
       previewUserId = '';
       previewInfo = null;
-      await reloadData();
+      resetLoadedViews();
+      await reloadData(currentView);
       renderSettings();
       const result = data.result || {};
       showMessage(`TESTサンプルを削除しました。\n案件:${result.cases || 0} / 工程:${result.tasks || 0} / 案件担当:${result.caseAssignees || 0} / 工程担当:${result.taskAssignees || 0}`, 'notice');
@@ -1298,7 +1327,8 @@
       const data = await api('createCase', payload);
       previewUserId = '';
       previewInfo = null;
-      await reloadData();
+      resetLoadedViews();
+      await reloadData(currentView);
       const result = data.result || {};
       const message = `案件を作成しました。\n案件ID: ${result.caseId || ''}`;
       if (result.caseId) await renderDetail(result.caseId);
@@ -1324,7 +1354,7 @@
         return;
       }
       try {
-        if (button.dataset.view) renderView(button.dataset.view);
+        if (button.dataset.view) await openView(button.dataset.view);
         else if (button.dataset.case) await renderDetail(button.dataset.case);
         else if (button.dataset.complete) await completeTask(button.dataset.complete, false);
         else if (button.dataset.reopen) await completeTask(button.dataset.reopen, true);
@@ -1376,7 +1406,7 @@
         if (!idToken) throw new Error('LIFFのIDトークンを取得できませんでした。');
         setLoading('案件情報を読み込んでいます。');
         try {
-          await reloadData();
+          await reloadData(DEFAULT_VIEW);
           debugLog('data_loaded', {
             active: true,
             source: 'dashboard',
@@ -1422,7 +1452,7 @@
         }
         if (identity.user) setUser(identity.user);
         setLoading('案件情報を読み込んでいます。');
-        await reloadData();
+        await reloadData(DEFAULT_VIEW);
         debugLog('data_loaded', {
           lineUserId: identity.profile && identity.profile.lineUserId,
           active: identity.active,
