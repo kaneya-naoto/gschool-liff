@@ -14,6 +14,7 @@
       --muted: #657083;
       --line: #d9dee7;
       --accent: #1267d8;
+      --accent-soft: #eaf2ff;
       --danger: #c83232;
       --warn: #a66a00;
       --ok: #18794e;
@@ -66,6 +67,11 @@
       padding: 9px;
       min-width: 0;
     }
+    .metric.danger {
+      border-color: #f2c0c0;
+      color: var(--danger);
+      background: #fff7f7;
+    }
     .summary-item b,
     .metric b {
       display: block;
@@ -83,6 +89,64 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
+    }
+    .home-panel {
+      display: grid;
+      gap: 12px;
+    }
+    .home-hero {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 14px;
+    }
+    .home-hero .title {
+      font-size: 17px;
+      line-height: 1.35;
+      margin-bottom: 2px;
+    }
+    .home-hero-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .eyebrow {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .subtle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      word-break: break-word;
+    }
+    .home-next-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .section-title h2 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+    .section-title span {
+      color: var(--muted);
+      font-size: 12px;
     }
     .tabs {
       display: grid;
@@ -191,6 +255,19 @@
       color: #394150;
       font-weight: 650;
     }
+    .task-compact {
+      padding: 10px 11px;
+    }
+    .task-compact .title {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .task-compact .meta {
+      margin-bottom: 6px;
+    }
+    .task-compact .actions {
+      margin-top: 8px;
+    }
     .form {
       display: grid;
       gap: 10px;
@@ -243,6 +320,134 @@
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 10px;
+    }
+    .calendar-toolbar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .calendar-toolbar button {
+      min-height: 38px;
+      padding: 7px 8px;
+      font-size: 13px;
+    }
+    .calendar-toolbar button.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #0c4a9e;
+    }
+    .calendar-panel {
+      display: grid;
+      gap: 10px;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .calendar-day {
+      min-height: 54px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 6px 4px;
+      color: var(--text);
+      text-align: center;
+    }
+    .calendar-day.outside {
+      background: #f1f3f6;
+      color: #98a1b1;
+    }
+    .calendar-day.today {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(18, 103, 216, 0.14) inset;
+    }
+    .calendar-day b {
+      display: block;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+    .calendar-day span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      margin-top: 4px;
+      border-radius: 999px;
+      background: #eef1f5;
+      color: #495267;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .calendar-day .overdue { background: #ffecec; color: var(--danger); }
+    .calendar-day .near { background: #fff3d8; color: var(--warn); }
+    .calendar-day .done { background: #e7f6ee; color: var(--ok); }
+    .agenda-group {
+      display: grid;
+      gap: 8px;
+    }
+    .agenda-date {
+      color: #394150;
+      font-size: 12px;
+      font-weight: 750;
+      margin: 2px 0 -2px;
+    }
+    .admin-menu {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0;
+    }
+    .admin-menu > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 13px 14px;
+      color: var(--text);
+      font-weight: 750;
+    }
+    .admin-menu > summary::-webkit-details-marker {
+      display: none;
+    }
+    .admin-menu > summary::after {
+      content: "開く";
+      float: right;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .admin-menu[open] > summary::after {
+      content: "閉じる";
+    }
+    .admin-menu small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+    .admin-menu-body {
+      display: grid;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      padding: 10px;
+      background: #f7f8fa;
+    }
+    .advanced-fields {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0;
+    }
+    .advanced-fields > summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      color: #394150;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .advanced-fields .field-grid {
+      padding: 0 10px 10px;
     }
     .bottom-menu {
       position: fixed;
@@ -423,6 +628,7 @@
     let interactionLocked = false;
     let homeSummary = null;
     let loadedViews = {};
+    let calendarMode = 'week';
 
     const el = (id) => document.getElementById(id);
     const qs = new URLSearchParams(location.search);
@@ -449,7 +655,19 @@
       alerts: 'アラート',
       settings: '設定',
     };
+    const DATE_FIELD_OPTIONS = [
+      { value: 'coverageDate', label: '取材日' },
+      { value: 'shootDate', label: '撮影日' },
+      { value: 'releaseDate', label: '配信日' },
+      { value: 'recordingDate', label: '収録日' },
+      { value: 'visitDate', label: '来店日' },
+      { value: 'appearanceDate', label: '出演日' },
+      { value: 'csReleaseDate', label: 'CS配信日' },
+    ];
     const DEFAULT_VIEW = VIEW_TITLES[qs.get('view')] ? qs.get('view') : 'today';
+    if (['week', 'month', 'list'].indexOf(qs.get('calendarMode')) >= 0) {
+      calendarMode = qs.get('calendarMode');
+    }
     let currentView = DEFAULT_VIEW;
 
     function escapeHtml(value) {
@@ -466,6 +684,55 @@
       if (status === '期限接近') return 'near';
       if (status === '完了') return 'done';
       return 'pending';
+    }
+
+    function parseLiffDate(value) {
+      const raw = String(value || '').trim();
+      const m = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+      if (!m) return null;
+      const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function dateKey(date) {
+      if (!date) return '';
+      return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0'),
+      ].join('-');
+    }
+
+    function addDays(date, days) {
+      const out = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      out.setDate(out.getDate() + days);
+      return out;
+    }
+
+    function startOfWeek(date) {
+      const base = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const offset = (base.getDay() + 6) % 7;
+      base.setDate(base.getDate() - offset);
+      return base;
+    }
+
+    function formatShortDate(date) {
+      if (!date) return '期日未設定';
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      return `${date.getMonth() + 1}/${date.getDate()}(${days[date.getDay()]})`;
+    }
+
+    function statusRank(status) {
+      if (status === '期限超過') return 4;
+      if (status === '期限接近') return 3;
+      if (status === '予定') return 2;
+      if (status === '完了') return 1;
+      return 0;
+    }
+
+    function strongestStatus(tasks) {
+      return (tasks || []).reduce((best, task) =>
+        statusRank(task.status) > statusRank(best) ? task.status : best, '');
     }
 
     function showMessage(text, type) {
@@ -892,28 +1159,41 @@
       }
     }
 
-    function taskCard(task, options = {}) {
-      const focus = options.focus ? ' focus' : '';
+    function taskActionButtons(task) {
       const detailButton = `<button class="secondary" type="button" data-case="${escapeHtml(task.caseId)}">案件を見る</button>`;
       const actionButton = isPreviewActive()
         ? ''
         : task.completed
         ? `<button class="danger" type="button" data-reopen="${escapeHtml(task.taskId)}">未完了に戻す</button>`
         : `<button class="primary" type="button" data-complete="${escapeHtml(task.taskId)}">完了にする</button>`;
+      return `${actionButton}${detailButton}`;
+    }
+
+    function taskCard(task, options = {}) {
+      const focus = options.focus ? ' focus' : '';
+      const compact = options.compact ? ' task-compact' : '';
+      const rows = options.compact
+        ? `
+          <div class="row"><b>案件</b><span>${escapeHtml(task.caseTitle)}</span></div>
+          ${task.note ? `<div class="row"><b>メモ</b><span>${escapeHtml(task.note)}</span></div>` : ''}
+        `
+        : `
+          <div class="row"><b>案件</b><span>${escapeHtml(task.caseTitle)}</span></div>
+          ${task.locationName ? `<div class="row"><b>場所</b><span>${escapeHtml(task.locationName)}</span></div>` : ''}
+          ${task.targetName ? `<div class="row"><b>対象</b><span>${escapeHtml(task.targetName)}</span></div>` : ''}
+          ${task.vendorName ? `<div class="row"><b>手配先</b><span>${escapeHtml(task.vendorName)}</span></div>` : ''}
+          ${task.note ? `<div class="row"><b>メモ</b><span>${escapeHtml(task.note)}</span></div>` : ''}
+        `;
       return `
-        <article id="task-${escapeHtml(task.taskId)}" class="card${focus}">
+        <article id="task-${escapeHtml(task.taskId)}" class="card${compact}${focus}">
           <p class="title">${escapeHtml(task.taskName)}</p>
           <div class="meta">
             <span class="badge ${badgeClass(task.status)}">${escapeHtml(task.status)}</span>
             <span>${escapeHtml(task.dueDate || '期日未設定')}</span>
             <span>${escapeHtml(task.assignee || '担当未設定')}</span>
           </div>
-          <div class="row"><b>案件</b><span>${escapeHtml(task.caseTitle)}</span></div>
-          ${task.locationName ? `<div class="row"><b>場所</b><span>${escapeHtml(task.locationName)}</span></div>` : ''}
-          ${task.targetName ? `<div class="row"><b>対象</b><span>${escapeHtml(task.targetName)}</span></div>` : ''}
-          ${task.vendorName ? `<div class="row"><b>手配先</b><span>${escapeHtml(task.vendorName)}</span></div>` : ''}
-          ${task.note ? `<div class="row"><b>メモ</b><span>${escapeHtml(task.note)}</span></div>` : ''}
-          <div class="actions">${actionButton}${detailButton}</div>
+          ${rows}
+          <div class="actions">${taskActionButtons(task)}</div>
         </article>
       `;
     }
@@ -952,11 +1232,68 @@
       `;
     }
 
+    function getHomeSummaryValue(key, fallback) {
+      return homeSummary && homeSummary[key] !== undefined ? homeSummary[key] : fallback;
+    }
+
+    function renderTodayHome() {
+      const nextTask = todayTasks.find((task) => !task.completed) || todayTasks[0] || null;
+      const overdueCount = todayTasks.filter((task) => !task.completed && task.status === '期限超過').length;
+      const nearCount = todayTasks.filter((task) => !task.completed && task.status === '期限接近').length;
+      const todayCount = getHomeSummaryValue('todayCount', todayTasks.length);
+      const caseCount = getHomeSummaryValue('caseCount', cases.length);
+      const alertCount = getHomeSummaryValue('alertCount', overdueCount + nearCount);
+      const hero = nextTask ? `
+        <article class="home-hero">
+          <div class="home-hero-head">
+            <div>
+              <span class="eyebrow">次の作業</span>
+              <p class="title">${escapeHtml(nextTask.taskName)}</p>
+              <p class="subtle">${escapeHtml(nextTask.caseTitle || '')}</p>
+            </div>
+            <span class="badge ${badgeClass(nextTask.status)}">${escapeHtml(nextTask.status)}</span>
+          </div>
+          <div class="home-next-meta">
+            <span>${escapeHtml(nextTask.dueDate || '期日未設定')}</span>
+            ${nextTask.locationName ? `<span>${escapeHtml(nextTask.locationName)}</span>` : ''}
+            ${nextTask.targetName ? `<span>${escapeHtml(nextTask.targetName)}</span>` : ''}
+          </div>
+          <div class="actions">${taskActionButtons(nextTask)}</div>
+        </article>
+      ` : `
+        <article class="home-hero">
+          <div>
+            <span class="eyebrow">次の作業</span>
+            <p class="title">今日すぐ対応が必要な作業はありません</p>
+            <p class="subtle">担当中の案件は「担当案件」から確認できます。</p>
+          </div>
+        </article>
+      `;
+      return `
+        <section class="home-panel">
+          ${hero}
+          <div class="metric-grid">
+            ${summaryMetric('今日の対応', todayCount)}
+            ${summaryMetric('期限注意', alertCount, alertCount ? 'danger' : '')}
+            ${summaryMetric('担当案件', caseCount)}
+            ${summaryMetric('期限超過', overdueCount, overdueCount ? 'danger' : '')}
+          </div>
+        </section>
+      `;
+    }
+
     function renderToday() {
       showOnly('today');
-      el('todayView').innerHTML = previewNoticeHtml() + (todayTasks.length
-        ? todayTasks.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
-        : '<div class="empty">今日すぐ対応が必要な作業はありません。担当中の案件は「担当案件」から確認できます。</div>');
+      const todayList = todayTasks.length
+        ? `
+          <div class="section-title">
+            <h2>今日の対応</h2>
+            <span>${escapeHtml(todayTasks.length)}件</span>
+          </div>
+          ${todayTasks.map((task) => taskCard(task, { compact: true, focus: task.taskId === qs.get('taskId') })).join('')}
+        `
+        : '';
+      el('todayView').innerHTML = previewNoticeHtml() + renderTodayHome() + todayList;
     }
 
     function renderCases() {
@@ -966,11 +1303,116 @@
         : '<div class="empty">表示できる担当案件はまだありません。案件が割り当てられると、ここに表示されます。</div>');
     }
 
+    function calendarModeButton(mode, label) {
+      const active = calendarMode === mode;
+      return `<button type="button" data-calendar-mode="${mode}" class="${active ? 'active' : ''}" aria-pressed="${active ? 'true' : 'false'}">${label}</button>`;
+    }
+
+    function tasksForCalendarMode() {
+      const today = new Date();
+      const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (calendarMode === 'list') return calendarItems.slice();
+      if (calendarMode === 'week') {
+        const start = startOfWeek(base);
+        const end = addDays(start, 6);
+        return calendarItems.filter((task) => {
+          const date = parseLiffDate(task.dueDate);
+          return date && date >= start && date <= end;
+        });
+      }
+      return calendarItems.filter((task) => {
+        const date = parseLiffDate(task.dueDate);
+        return date && date.getFullYear() === base.getFullYear() && date.getMonth() === base.getMonth();
+      });
+    }
+
+    function calendarItemsByDate(items) {
+      const grouped = {};
+      (items || []).forEach((task) => {
+        const key = dateKey(parseLiffDate(task.dueDate)) || 'none';
+        grouped[key] = grouped[key] || [];
+        grouped[key].push(task);
+      });
+      return grouped;
+    }
+
+    function renderCalendarDay(date, grouped, outside) {
+      const key = dateKey(date);
+      const items = grouped[key] || [];
+      const status = strongestStatus(items);
+      const todayKey = dateKey(new Date());
+      return `
+        <div class="calendar-day${outside ? ' outside' : ''}${key === todayKey ? ' today' : ''}">
+          <b>${date.getDate()}</b>
+          ${items.length ? `<span class="${badgeClass(status)}">${items.length}</span>` : '<span>0</span>'}
+        </div>
+      `;
+    }
+
+    function renderCalendarGrid(items) {
+      const grouped = calendarItemsByDate(items);
+      const today = new Date();
+      const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (calendarMode === 'week') {
+        const start = startOfWeek(base);
+        return `
+          <article class="card calendar-panel">
+            <div class="section-title">
+              <h2>今週</h2>
+              <span>${formatShortDate(start)} - ${formatShortDate(addDays(start, 6))}</span>
+            </div>
+            <div class="calendar-grid">
+              ${Array.from({ length: 7 }, (_, i) => renderCalendarDay(addDays(start, i), grouped, false)).join('')}
+            </div>
+          </article>
+        `;
+      }
+      if (calendarMode === 'month') {
+        const first = new Date(base.getFullYear(), base.getMonth(), 1);
+        const start = startOfWeek(first);
+        const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
+        return `
+          <article class="card calendar-panel">
+            <div class="section-title">
+              <h2>${base.getFullYear()}年${base.getMonth() + 1}月</h2>
+              <span>${items.length}件</span>
+            </div>
+            <div class="calendar-grid">
+              ${days.map((date) => renderCalendarDay(date, grouped, date.getMonth() !== base.getMonth())).join('')}
+            </div>
+          </article>
+        `;
+      }
+      return '';
+    }
+
+    function renderAgendaList(items) {
+      const grouped = calendarItemsByDate(items);
+      const keys = Object.keys(grouped).sort();
+      if (!keys.length) return '<div class="empty">この範囲の予定はありません。</div>';
+      return keys.map((key) => {
+        const date = key === 'none' ? null : parseLiffDate(key);
+        return `
+          <div class="agenda-group">
+            <p class="agenda-date">${escapeHtml(formatShortDate(date))}</p>
+            ${grouped[key].map((task) => taskCard(task, { compact: true, focus: task.taskId === qs.get('taskId') })).join('')}
+          </div>
+        `;
+      }).join('');
+    }
+
     function renderCalendar() {
       showOnly('calendar');
-      el('calendarView').innerHTML = previewNoticeHtml() + (calendarItems.length
-        ? calendarItems.map((task) => taskCard(task, { focus: task.taskId === qs.get('taskId') })).join('')
-        : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>');
+      const visibleItems = tasksForCalendarMode();
+      el('calendarView').innerHTML = previewNoticeHtml() + `
+        <div class="calendar-toolbar">
+          ${calendarModeButton('week', '今週')}
+          ${calendarModeButton('month', '今月')}
+          ${calendarModeButton('list', '日付別')}
+        </div>
+        ${calendarItems.length ? renderCalendarGrid(visibleItems) : ''}
+        ${calendarItems.length ? renderAgendaList(visibleItems) : '<div class="empty">表示できる予定はまだありません。担当案件や工程が割り当てられると、ここに表示されます。</div>'}
+      `;
     }
 
     function summaryMetric(label, value, className = '') {
@@ -1073,6 +1515,7 @@
       if (!isAdminUser() || !adminOptions || isPreviewActive()) return '';
       const caseTypes = adminOptions.caseTypes || [];
       const channels = adminOptions.channels || [];
+      const dateOptions = optionList(DATE_FIELD_OPTIONS, 'coverageDate');
       return `
         <article class="card">
           <p class="title">案件作成</p>
@@ -1096,18 +1539,31 @@
               <select id="caseProgram"><option value="">未設定</option></select>
             </div>
             <div class="field-grid">
-              <div class="field"><label for="shootDate">撮影日</label><input id="shootDate" type="date"></div>
-              <div class="field"><label for="releaseDate">配信日</label><input id="releaseDate" type="date"></div>
-              <div class="field"><label for="recordingDate">収録日</label><input id="recordingDate" type="date"></div>
-              <div class="field"><label for="visitDate">来店日</label><input id="visitDate" type="date"></div>
-              <div class="field"><label for="appearanceDate">出演日</label><input id="appearanceDate" type="date"></div>
-              <div class="field"><label for="coverageDate">取材日</label><input id="coverageDate" type="date"></div>
-              <div class="field"><label for="csReleaseDate">CS配信日</label><input id="csReleaseDate" type="date"></div>
+              <div class="field">
+                <label for="casePrimaryDateType">主要日付の種類</label>
+                <select id="casePrimaryDateType">${dateOptions}</select>
+              </div>
+              <div class="field">
+                <label for="casePrimaryDate">主要日付</label>
+                <input id="casePrimaryDate" type="date">
+              </div>
             </div>
             <div class="field">
               <label for="caseNote">備考</label>
               <textarea id="caseNote"></textarea>
             </div>
+            <details class="advanced-fields">
+              <summary>詳細日付</summary>
+              <div class="field-grid">
+                <div class="field"><label for="shootDate">撮影日</label><input id="shootDate" type="date"></div>
+                <div class="field"><label for="releaseDate">配信日</label><input id="releaseDate" type="date"></div>
+                <div class="field"><label for="recordingDate">収録日</label><input id="recordingDate" type="date"></div>
+                <div class="field"><label for="visitDate">来店日</label><input id="visitDate" type="date"></div>
+                <div class="field"><label for="appearanceDate">出演日</label><input id="appearanceDate" type="date"></div>
+                <div class="field"><label for="coverageDate">取材日</label><input id="coverageDate" type="date"></div>
+                <div class="field"><label for="csReleaseDate">CS配信日</label><input id="csReleaseDate" type="date"></div>
+              </div>
+            </details>
             <div class="actions">
               <button class="primary" type="button" data-create-case="1">案件を作成</button>
             </div>
@@ -1128,6 +1584,22 @@
       select.innerHTML = `<option value="">未設定</option>${optionList(unique, select.value)}`;
     }
 
+    function adminMenuHtml() {
+      if (!isAdminUser() || !adminOptions) return '';
+      const items = [
+        adminCaseForm(),
+        adminSampleCard(),
+        adminPreviewCard(),
+      ].filter(Boolean).join('');
+      if (!items) return '';
+      return `
+        <details class="admin-menu">
+          <summary>管理者メニュー<small>案件作成 / TEST / 担当者プレビュー</small></summary>
+          <div class="admin-menu-body">${items}</div>
+        </details>
+      `;
+    }
+
     function renderSettings() {
       showOnly('settings');
       const user = currentUser || {};
@@ -1140,9 +1612,7 @@
           <div class="row"><b>利用者ID</b><span>${escapeHtml(user.userId || '')}</span></div>
         </article>
         <div class="notice">表示内容や担当案件が違う場合は、管理者に設定_利用者と担当割当の確認を依頼してください。</div>
-        ${adminPreviewCard()}
-        ${adminSampleCard()}
-        ${adminCaseForm()}
+        ${adminMenuHtml()}
       `;
       refreshProgramSelect();
     }
@@ -1309,11 +1779,7 @@
         showMessage('担当者プレビュー中は案件を作成できません。プレビューを解除してから操作してください。', 'notice');
         return;
       }
-      const payload = {
-        title: el('caseTitle') ? el('caseTitle').value : '',
-        caseType: el('caseType') ? el('caseType').value : '',
-        channel: el('caseChannel') ? el('caseChannel').value : '',
-        program: el('caseProgram') ? el('caseProgram').value : '',
+      const dates = {
         shootDate: el('shootDate') ? el('shootDate').value : '',
         releaseDate: el('releaseDate') ? el('releaseDate').value : '',
         recordingDate: el('recordingDate') ? el('recordingDate').value : '',
@@ -1321,6 +1787,24 @@
         appearanceDate: el('appearanceDate') ? el('appearanceDate').value : '',
         coverageDate: el('coverageDate') ? el('coverageDate').value : '',
         csReleaseDate: el('csReleaseDate') ? el('csReleaseDate').value : '',
+      };
+      const primaryDateType = el('casePrimaryDateType') ? el('casePrimaryDateType').value : 'coverageDate';
+      const primaryDate = el('casePrimaryDate') ? el('casePrimaryDate').value : '';
+      if (primaryDate && Object.prototype.hasOwnProperty.call(dates, primaryDateType) && !dates[primaryDateType]) {
+        dates[primaryDateType] = primaryDate;
+      }
+      const payload = {
+        title: el('caseTitle') ? el('caseTitle').value : '',
+        caseType: el('caseType') ? el('caseType').value : '',
+        channel: el('caseChannel') ? el('caseChannel').value : '',
+        program: el('caseProgram') ? el('caseProgram').value : '',
+        shootDate: dates.shootDate,
+        releaseDate: dates.releaseDate,
+        recordingDate: dates.recordingDate,
+        visitDate: dates.visitDate,
+        appearanceDate: dates.appearanceDate,
+        coverageDate: dates.coverageDate,
+        csReleaseDate: dates.csReleaseDate,
         note: el('caseNote') ? el('caseNote').value : '',
       };
       setLoading('案件を作成しています。');
@@ -1354,7 +1838,11 @@
         return;
       }
       try {
-        if (button.dataset.view) await openView(button.dataset.view);
+        if (button.dataset.calendarMode) {
+          calendarMode = button.dataset.calendarMode;
+          renderCalendar();
+        }
+        else if (button.dataset.view) await openView(button.dataset.view);
         else if (button.dataset.case) await renderDetail(button.dataset.case);
         else if (button.dataset.complete) await completeTask(button.dataset.complete, false);
         else if (button.dataset.reopen) await completeTask(button.dataset.reopen, true);
