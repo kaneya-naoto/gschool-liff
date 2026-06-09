@@ -4,54 +4,65 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gスクイール</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23111827'/%3E%3Ctext%20x='32'%20y='42'%20font-size='34'%20text-anchor='middle'%20fill='white'%20font-family='Arial,sans-serif'%20font-weight='700'%3EG%3C/text%3E%3C/svg%3E">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root {
       color-scheme: light;
-      --bg: #f7f8fa;
+      --bg: #f3f4f6;
       --panel: #ffffff;
-      --text: #20242a;
-      --muted: #657083;
-      --line: #d9dee7;
-      --accent: #1267d8;
-      --accent-soft: #eaf2ff;
-      --danger: #c83232;
-      --warn: #a66a00;
-      --ok: #18794e;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #111827;
+      --accent-hover: #374151;
+      --accent-soft: #f3f4f6;
+      --danger: #dc2626;
+      --warn: #d97706;
+      --ok: #16a34a;
+      --info: #0284c7;
+      --ring: 0 0 0 1px rgba(17, 24, 39, 0.08);
+      --shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      min-height: 100vh;
       padding-bottom: 82px;
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.5;
     }
     header {
       position: sticky;
       top: 0;
       z-index: 5;
+      display: grid;
+      gap: 2px;
+      min-height: 64px;
       background: rgba(255, 255, 255, 0.96);
       border-bottom: 1px solid var(--line);
-      padding: 12px 14px 10px;
+      padding: 12px 16px 10px;
+      backdrop-filter: blur(8px);
     }
     h1 {
       margin: 0;
       font-size: 18px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: 0;
+      line-height: 1.25;
     }
     .user {
-      margin-top: 2px;
       color: var(--muted);
       font-size: 12px;
+      font-weight: 500;
       min-height: 18px;
     }
     main {
-      max-width: 720px;
+      max-width: 768px;
       margin: 0 auto;
-      padding: 12px;
+      padding: 16px;
     }
     .home-summary {
       display: flex;
@@ -69,10 +80,10 @@
     .home-hero {
       display: grid;
       gap: 10px;
-      border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
-      padding: 14px;
+      box-shadow: var(--shadow), var(--ring);
+      padding: 16px;
     }
     .home-hero .title {
       font-size: 17px;
@@ -89,7 +100,7 @@
       display: block;
       color: var(--muted);
       font-size: 11px;
-      font-weight: 750;
+      font-weight: 800;
     }
     .subtle {
       margin: 0;
@@ -105,26 +116,63 @@
       font-size: 12px;
     }
     .home-brief {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
     }
     .home-brief span,
     .summary-pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 26px;
-      border-radius: 999px;
-      background: #eef1f5;
-      color: #495267;
-      padding: 3px 9px;
+      display: grid;
+      align-content: center;
+      min-height: 58px;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow), var(--ring);
+      color: #374151;
+      padding: 10px 12px;
       font-size: 12px;
-      font-weight: 750;
+      font-weight: 800;
     }
     .home-brief .danger,
     .summary-pill.danger {
-      background: #fff3d8;
+      background: #fffbeb;
       color: var(--warn);
+      box-shadow: var(--shadow), 0 0 0 1px rgba(245, 158, 11, 0.18);
+    }
+    .home-brief .overdue {
+      background: #fef2f2;
+      color: var(--danger);
+      box-shadow: var(--shadow), 0 0 0 1px rgba(220, 38, 38, 0.16);
+    }
+    .home-brief .near {
+      background: #fffbeb;
+      color: var(--warn);
+      box-shadow: var(--shadow), 0 0 0 1px rgba(245, 158, 11, 0.18);
+    }
+    .home-brief .president {
+      background: #faf5ff;
+      color: #9333ea;
+      box-shadow: var(--shadow), 0 0 0 1px rgba(147, 51, 234, 0.16);
+    }
+    .home-stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .home-stat-value {
+      display: block;
+      margin-top: 3px;
+      color: currentColor;
+      font-size: 22px;
+      font-weight: 850;
+      line-height: 1.1;
+    }
+    @media (min-width: 640px) {
+      .home-brief {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
     }
     .section-title {
       display: flex;
@@ -135,8 +183,9 @@
     }
     .section-title h2 {
       margin: 0;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.3;
+      font-weight: 800;
     }
     .section-title span {
       color: var(--muted);
@@ -151,25 +200,32 @@
     .tab,
     button {
       appearance: none;
-      border: 1px solid var(--line);
+      border: 0;
       background: var(--panel);
       color: var(--text);
       min-height: 42px;
       border-radius: 8px;
       padding: 9px 12px;
       font-size: 14px;
-      font-weight: 650;
+      font-weight: 700;
+      box-shadow: var(--shadow), var(--ring);
       cursor: pointer;
+    }
+    button:hover {
+      background: #f9fafb;
     }
     .tab.active {
       border-color: var(--accent);
-      background: #eaf2ff;
-      color: #0c4a9e;
+      background: #111827;
+      color: #fff;
     }
     .primary {
       border-color: var(--accent);
       background: var(--accent);
       color: #fff;
+    }
+    .primary:hover {
+      background: var(--accent-hover);
     }
     .secondary {
       color: var(--muted);
@@ -195,22 +251,23 @@
     }
     .stack {
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
     .card {
       background: var(--panel);
-      border: 1px solid var(--line);
+      border: 0;
       border-radius: 8px;
-      padding: 12px;
+      box-shadow: var(--shadow), var(--ring);
+      padding: 14px;
     }
     .card:target,
     .card.focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(18, 103, 216, 0.12);
+      box-shadow: var(--shadow), 0 0 0 2px rgba(17, 24, 39, 0.16);
     }
     .title {
       font-size: 15px;
-      font-weight: 750;
+      font-weight: 800;
       margin: 0 0 4px;
       word-break: break-word;
     }
@@ -226,17 +283,18 @@
       display: inline-flex;
       align-items: center;
       min-height: 24px;
-      border-radius: 999px;
+      border-radius: 6px;
       padding: 2px 9px;
-      background: #eef1f5;
-      color: #495267;
+      background: #f3f4f6;
+      color: #4b5563;
       font-size: 12px;
-      font-weight: 650;
+      font-weight: 700;
+      box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.08) inset;
     }
-    .badge.overdue { background: #ffecec; color: var(--danger); }
-    .badge.near { background: #fff3d8; color: var(--warn); }
-    .badge.done { background: #e7f6ee; color: var(--ok); }
-    .badge.pending { background: #eef1f5; color: #495267; }
+    .badge.overdue { background: #fef2f2; color: var(--danger); }
+    .badge.near { background: #fffbeb; color: var(--warn); }
+    .badge.done { background: #f0fdf4; color: var(--ok); }
+    .badge.pending { background: #f3f4f6; color: #4b5563; }
     .sample-pill {
       display: inline-flex;
       align-items: center;
@@ -288,9 +346,9 @@
     .today-sample {
       display: grid;
       gap: 8px;
-      border: 1px dashed #b7c2d2;
       border-radius: 8px;
       background: #fff;
+      box-shadow: var(--shadow), 0 0 0 1px rgba(156, 163, 175, 0.35);
       padding: 10px;
     }
     .today-sample-head {
@@ -370,6 +428,7 @@
       padding: 9px 10px;
       font: inherit;
       font-size: 14px;
+      box-shadow: 0 1px 1px rgba(17, 24, 39, 0.03);
     }
     textarea {
       min-height: 72px;
@@ -403,8 +462,8 @@
     }
     .calendar-toolbar button.active {
       border-color: var(--accent);
-      background: var(--accent-soft);
-      color: #0c4a9e;
+      background: var(--accent);
+      color: #fff;
     }
     .calendar-nav {
       display: grid;
@@ -421,9 +480,9 @@
       display: grid;
       gap: 2px;
       min-height: 38px;
-      border: 1px solid #dfe5ee;
       border-radius: 8px;
       background: #fff;
+      box-shadow: var(--shadow), var(--ring);
       padding: 5px 8px;
       text-align: center;
       align-content: center;
@@ -436,10 +495,11 @@
       min-height: 0;
       border: 0;
       background: transparent;
-      color: var(--accent);
+      color: #4b5563;
       padding: 0;
       font-size: 11px;
       line-height: 1.2;
+      box-shadow: none;
     }
     .calendar-panel {
       display: grid;
@@ -454,9 +514,10 @@
       appearance: none;
       width: 100%;
       min-height: 54px;
-      border: 1px solid var(--line);
+      border: 0;
       border-radius: 8px;
       background: #fff;
+      box-shadow: var(--shadow), var(--ring);
       padding: 6px 4px;
       color: var(--text);
       text-align: center;
@@ -473,13 +534,13 @@
     }
     .calendar-day.today {
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(18, 103, 216, 0.14) inset;
+      box-shadow: var(--shadow), 0 0 0 2px rgba(17, 24, 39, 0.22) inset;
     }
     .calendar-day.selected {
       border-color: var(--accent);
-      background: #eaf2ff;
-      color: #0c4a9e;
-      box-shadow: 0 0 0 2px rgba(18, 103, 216, 0.12) inset;
+      background: #111827;
+      color: #fff;
+      box-shadow: var(--shadow), 0 0 0 2px rgba(17, 24, 39, 0.12) inset;
     }
     .calendar-day b {
       display: block;
@@ -507,11 +568,11 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      border: 1px solid #d9e6f7;
+      border: 1px solid #bfdbfe;
       border-radius: 8px;
-      background: #f4f8ff;
+      background: #eff6ff;
       padding: 8px 10px;
-      color: #1f4f85;
+      color: #1d4ed8;
       font-size: 12px;
       font-weight: 700;
     }
@@ -534,9 +595,9 @@
     .settings-card {
       display: grid;
       gap: 10px;
-      border: 1px solid #dfe5ee;
       border-radius: 8px;
       background: #fff;
+      box-shadow: var(--shadow), var(--ring);
       padding: 12px;
     }
     .settings-head {
@@ -548,8 +609,8 @@
     .settings-role {
       flex: none;
       border-radius: 999px;
-      background: #eaf2ff;
-      color: #0c4a9e;
+      background: #f3f4f6;
+      color: #374151;
       padding: 4px 9px;
       font-size: 12px;
       font-weight: 750;
@@ -590,9 +651,9 @@
       word-break: break-all;
     }
     .settings-help {
-      border: 1px solid #dfe5ee;
       border-radius: 8px;
       background: #fff;
+      box-shadow: var(--shadow), var(--ring);
       padding: 10px 12px;
       color: var(--muted);
       font-size: 12px;
@@ -745,20 +806,21 @@
       z-index: 8;
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1px;
       border-top: 1px solid var(--line);
-      background: var(--line);
+      background: #fff;
+      box-shadow: 0 -8px 24px rgba(17, 24, 39, 0.08);
       padding-bottom: env(safe-area-inset-bottom);
     }
     .menu-btn {
-      min-height: 62px;
+      min-height: 60px;
       border: 0;
       border-radius: 0;
       background: #fff;
-      color: #384253;
+      color: #4b5563;
       padding: 6px 2px;
       font-size: 12px;
-      font-weight: 750;
+      font-weight: 800;
+      box-shadow: none;
     }
     .menu-btn b {
       display: block;
@@ -767,8 +829,9 @@
       margin-bottom: 2px;
     }
     .menu-btn.active {
-      background: #eaf2ff;
-      color: #0c4a9e;
+      background: #f9fafb;
+      color: #111827;
+      box-shadow: inset 0 3px 0 #111827;
     }
     .empty,
     .notice,
@@ -781,17 +844,34 @@
       text-align: center;
     }
     .notice {
-      border-color: #b9d3f7;
-      color: #1f4f85;
-      background: #f4f8ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+      background: #eff6ff;
       text-align: left;
       white-space: pre-wrap;
       word-break: break-word;
     }
+    .notice.demo {
+      border-color: #fcd34d;
+      color: #92400e;
+      background: #fffbeb;
+    }
+    .demo-switch {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .demo-switch button {
+      min-height: 34px;
+      padding: 7px 10px;
+      font-size: 12px;
+    }
     .error {
-      border-color: #f0b8b8;
+      border-color: #fecaca;
       color: var(--danger);
-      background: #fff8f8;
+      background: #fef2f2;
       text-align: left;
       white-space: pre-wrap;
       word-break: break-word;
@@ -813,10 +893,9 @@
     }
     .loading-sheet {
       width: min(300px, calc(100vw - 48px));
-      border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
-      box-shadow: 0 16px 44px rgba(36, 44, 56, 0.18);
+      box-shadow: 0 16px 44px rgba(17, 24, 39, 0.18), var(--ring);
       padding: 16px 18px;
       display: flex;
       align-items: center;
@@ -865,7 +944,7 @@
 </head>
 <body>
   <header>
-    <h1>マイページ</h1>
+    <h1>ホーム</h1>
     <div id="user" class="user"></div>
     <div id="homeSummary" class="home-summary" hidden></div>
   </header>
@@ -888,14 +967,14 @@
     </div>
   </div>
   <nav class="bottom-menu" aria-label="Gスクイールメニュー">
-    <button class="menu-btn active" type="button" data-view="today"><b>今</b>今日</button>
+    <button class="menu-btn active" type="button" data-view="today"><b>ホ</b>ホーム</button>
     <button class="menu-btn" type="button" data-view="cases"><b>件</b>案件</button>
-    <button class="menu-btn" type="button" data-view="calendar"><b>予</b>予定表</button>
+    <button class="menu-btn" type="button" data-view="calendar"><b>月</b>予定</button>
     <button class="menu-btn" type="button" data-view="settings"><b>設</b>設定</button>
   </nav>
 
   <script>
-    const LIFF_ID = "2010221787-EQOsOECT";
+    const LIFF_ID = "2010221787-lyYbmyt2";
     const API_URL = "https://script.google.com/macros/s/AKfycbxp4msQecWB1hSO-iApaAF7dUTDkWeHftfhLQP1rKryT5VzlJv_HyUKTIgReKarq91ZsQ/exec";
     let idToken = '';
     let currentUser = null;
@@ -905,19 +984,30 @@
     let adminOptions = null;
     let previewUserId = '';
     let previewInfo = null;
+    let demoMode = false;
+    let demoRole = '';
     let activeCaseId = '';
     let lastIdentity = null;
     let interactionLocked = false;
     let homeSummary = null;
     let loadedViews = {};
-    let calendarMode = 'week';
+    let calendarMode = 'month';
     let calendarCursorDate = todayDate();
     let selectedCalendarDate = '';
+    let clientDashboardCacheScope = '';
+    let completionRefreshTimer = null;
+    let completionRefreshSerial = 0;
 
     const el = (id) => document.getElementById(id);
     const qs = new URLSearchParams(location.search);
     previewUserId = qs.get('previewUserId') || '';
+    demoRole = normalizeDemoRole(qs.get('demoRole') || qs.get('demo_role') || '');
+    demoMode = qs.get('demo') === '1' || !!demoRole;
+    if (demoMode && !demoRole) demoRole = 'admin';
     const DEBUG_MODE = qs.get('debug') === '1';
+    const CLIENT_DASHBOARD_CACHE_PREFIX = 'gsq:sheets-liff:dashboard:v2';
+    const CLIENT_DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
+    const COMPLETION_REFRESH_DELAY_MS = 4000;
     const clientDebugEvents = [];
     const READ_API_ACTIONS = {
       whoami: true,
@@ -930,7 +1020,7 @@
       adminOptions: true,
     };
     const VIEW_TITLES = {
-      today: '今日やること',
+      today: 'ホーム',
       cases: '担当案件',
       calendar: '予定表',
       settings: '設定',
@@ -957,6 +1047,21 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    function normalizeDemoRole(value) {
+      const raw = String(value || '').trim();
+      if (raw === 'admin' || raw === '管理者') return 'admin';
+      if (raw === 'member' || raw === 'worker' || raw === 'operator' || raw === '担当者' || raw === '作業者') return 'member';
+      return '';
+    }
+
+    function demoRoleLabel(role) {
+      return normalizeDemoRole(role) === 'member' ? '作業者' : '管理者';
+    }
+
+    function demoDisplayName(role) {
+      return normalizeDemoRole(role) === 'member' ? 'デモ作業者' : 'デモ管理者';
     }
 
     function badgeClass(status) {
@@ -1055,6 +1160,103 @@
       return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
+    function fallbackHash(value) {
+      let hash = 0;
+      const text = String(value || '');
+      for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+      }
+      return `fallback-${Math.abs(hash)}`;
+    }
+
+    async function sha256Hex(value) {
+      try {
+        if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+          const bytes = new TextEncoder().encode(String(value || ''));
+          const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+          return Array.from(new Uint8Array(digest))
+            .map((byte) => byte.toString(16).padStart(2, '0'))
+            .join('');
+        }
+      } catch (err) {
+        debugLog('client_cache_hash_fallback', { message: err.message || String(err) });
+      }
+      return fallbackHash(value);
+    }
+
+    async function prepareClientDashboardCacheScope() {
+      if (demoMode) {
+        clientDashboardCacheScope = await sha256Hex(`${LIFF_ID || 'demo'}|demo|${demoRole || 'admin'}`);
+        return;
+      }
+      clientDashboardCacheScope = await sha256Hex(`${LIFF_ID}|${idToken}`);
+    }
+
+    function clientDashboardCacheKey(view) {
+      if (!clientDashboardCacheScope || previewUserId) return '';
+      return [
+        CLIENT_DASHBOARD_CACHE_PREFIX,
+        LIFF_ID,
+        clientDashboardCacheScope,
+        view || DEFAULT_VIEW,
+      ].join(':');
+    }
+
+    function readClientDashboardCache(view) {
+      const key = clientDashboardCacheKey(view);
+      if (!key) return null;
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.data || Number(parsed.expiresAt || 0) < Date.now()) {
+          localStorage.removeItem(key);
+          return null;
+        }
+        return parsed.data;
+      } catch (err) {
+        debugLog('client_cache_read_error', { level: 'WARN', message: err.message || String(err) });
+        return null;
+      }
+    }
+
+    function writeClientDashboardCache(view, data) {
+      const key = clientDashboardCacheKey(view);
+      if (!key || !data) return;
+      try {
+        localStorage.setItem(key, JSON.stringify({
+          savedAt: Date.now(),
+          expiresAt: Date.now() + CLIENT_DASHBOARD_CACHE_TTL_MS,
+          data,
+        }));
+      } catch (err) {
+        debugLog('client_cache_write_error', { level: 'WARN', message: err.message || String(err) });
+      }
+    }
+
+    function clearClientDashboardCache() {
+      if (!clientDashboardCacheScope) return;
+      const prefix = `${CLIENT_DASHBOARD_CACHE_PREFIX}:${LIFF_ID}:${clientDashboardCacheScope}:`;
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && key.indexOf(prefix) === 0) localStorage.removeItem(key);
+        }
+      } catch (err) {
+        debugLog('client_cache_clear_error', { level: 'WARN', message: err.message || String(err) });
+      }
+    }
+
+    function renderClientDashboardCache(view) {
+      const cached = readClientDashboardCache(view);
+      if (!cached) return false;
+      applyDashboardData(cached, view);
+      renderView(view);
+      showMessage('前回表示を先に表示しています。最新情報を確認中です。', 'notice');
+      debugLog('client_cache_hit', { action: 'dashboard', view });
+      return true;
+    }
+
     function isRetryableApiError(err) {
       const message = (err && err.message) || String(err || '');
       return message.indexOf('タイムアウト') >= 0 ||
@@ -1150,6 +1352,7 @@
       if (button.dataset.requestRegistration) return 'requestRegistration';
       if (button.dataset.applyPreview) return 'applyPreview';
       if (button.dataset.clearPreview) return 'clearPreview';
+      if (button.dataset.demoRole) return 'demoRole';
       if (button.dataset.setupTestSamples) return 'setupTestSamples';
       if (button.dataset.cleanupTestSamples) return 'cleanupTestSamples';
       if (button.dataset.createCase) return 'createCase';
@@ -1162,6 +1365,7 @@
       if (button.dataset.complete || button.dataset.reopen) return '更新中';
       if (button.dataset.requestRegistration) return '申請中';
       if (button.dataset.applyPreview || button.dataset.clearPreview) return '切替中';
+      if (button.dataset.demoRole) return '切替中';
       if (button.dataset.setupTestSamples) return '作成中';
       if (button.dataset.cleanupTestSamples) return '削除中';
       if (button.dataset.createCase) return '作成中';
@@ -1210,7 +1414,9 @@
 
     function hideLoadingOverlay() {
       const overlay = el('loadingOverlay');
+      const label = el('loadingText');
       if (overlay) overlay.hidden = true;
+      if (label) label.textContent = '読み込み中です。';
       document.body.removeAttribute('aria-busy');
     }
 
@@ -1400,14 +1606,15 @@
       });
     }
 
-    async function api(action, body = {}) {
-      const attempts = READ_API_ACTIONS[action] ? 2 : 1;
-      const timeoutMs = action === 'dashboard' ? 25000 : 15000;
+    async function api(action, body = {}, options = {}) {
+      const attempts = options.background ? 1 : (READ_API_ACTIONS[action] ? 2 : 1);
+      const timeoutMs = options.timeoutMs || (options.background ? 12000 : (action === 'dashboard' ? 25000 : 15000));
       for (let attempt = 1; attempt <= attempts; attempt++) {
         debugLog('api_start', { action, hasIdToken: !!idToken, attempt });
         try {
+          const demoPayload = demoMode ? { demo: '1', demoRole: demoRole || 'admin' } : {};
           const result = await withTimeout(
-            callServerApi({ ...body, action, idToken }),
+            callServerApi({ ...body, action, idToken, ...demoPayload }),
             'LIFF API通信',
             timeoutMs
           );
@@ -1489,8 +1696,22 @@
     }
 
     function previewNoticeHtml() {
-      if (!isPreviewActive()) return '';
-      return `<div class="notice preview">担当者プレビュー中: ${escapeHtml(previewInfo.displayName || previewInfo.userId)} として見える範囲だけ表示しています。更新操作はできません。</div>`;
+      const notices = [];
+      if (demoMode) {
+        notices.push(`
+          <div class="notice demo">
+            デモモード: ${escapeHtml(demoRoleLabel(demoRole))}として表示しています。LINE送信など外部連携は実送信しません。
+            <div class="demo-switch" role="group" aria-label="デモ表示切替">
+              <button type="button" class="${demoRole === 'admin' ? 'primary' : 'secondary'}" data-demo-role="admin">管理者</button>
+              <button type="button" class="${demoRole === 'member' ? 'primary' : 'secondary'}" data-demo-role="member">作業者</button>
+            </div>
+          </div>
+        `);
+      }
+      if (isPreviewActive()) {
+        notices.push(`<div class="notice preview">担当者プレビュー中: ${escapeHtml(previewInfo.displayName || previewInfo.userId)} として見える範囲だけ表示しています。更新操作はできません。</div>`);
+      }
+      return notices.join('');
     }
 
     function caseCard(item) {
@@ -1518,18 +1739,30 @@
       return homeSummary && homeSummary[key] !== undefined ? homeSummary[key] : fallback;
     }
 
+    function homeStatCard(label, value, tone = '') {
+      return `
+        <span class="${escapeHtml(tone)}">
+          <b class="home-stat-label">${escapeHtml(label)}</b>
+          <strong class="home-stat-value">${escapeHtml(value)}</strong>
+        </span>
+      `;
+    }
+
     function renderTodayHome() {
       const nextTask = todayTasks.find((task) => !task.completed) || todayTasks[0] || null;
       const overdueCount = todayTasks.filter((task) => !task.completed && task.status === '期限超過').length;
       const nearCount = todayTasks.filter((task) => !task.completed && task.status === '期限接近').length;
       const todayCount = getHomeSummaryValue('todayCount', todayTasks.length);
       const caseCount = getHomeSummaryValue('caseCount', cases.length);
-      const alertCount = getHomeSummaryValue('alertCount', overdueCount + nearCount);
+      const incompleteCount = getHomeSummaryValue('incompleteCount', todayTasks.filter((task) => !task.completed).length);
+      const summaryOverdueCount = getHomeSummaryValue('overdueCount', overdueCount);
+      const summaryNearCount = getHomeSummaryValue('approachingCount', nearCount);
+      const presidentCheckCount = getHomeSummaryValue('presidentCheckCount', 0);
       const hero = nextTask ? `
         <article class="home-hero">
           <div class="home-hero-head">
             <div>
-              <span class="eyebrow">次の作業</span>
+              <span class="eyebrow">要対応</span>
               <p class="title">${escapeHtml(nextTask.taskName)}</p>
               <p class="subtle">${escapeHtml(nextTask.caseTitle || '')}</p>
             </div>
@@ -1545,9 +1778,9 @@
       ` : `
         <article class="home-hero">
           <div>
-            <span class="eyebrow">次の作業</span>
-            <p class="title">今日すぐ対応が必要な作業はありません</p>
-            <p class="subtle">担当中の案件は「担当案件」から確認できます。</p>
+            <span class="eyebrow">要対応</span>
+            <p class="title">対応待ちの工程はありません</p>
+            <p class="subtle">担当中の案件は「担当案件」、月全体は「予定表」から確認できます。</p>
           </div>
         </article>
       `;
@@ -1555,9 +1788,11 @@
         <section class="home-panel">
           ${hero}
           <div class="home-brief" aria-label="担当状況の要約">
-            <span>今日 ${escapeHtml(todayCount)}</span>
-            <span class="${alertCount ? 'danger' : ''}">注意 ${escapeHtml(alertCount)}${overdueCount ? ` / 超過 ${escapeHtml(overdueCount)}` : ''}</span>
-            <span>案件 ${escapeHtml(caseCount)}</span>
+            ${homeStatCard('案件', caseCount)}
+            ${homeStatCard('未完了工程', incompleteCount)}
+            ${homeStatCard('期限超過', summaryOverdueCount, summaryOverdueCount ? 'overdue' : '')}
+            ${homeStatCard('期限接近', summaryNearCount, summaryNearCount ? 'near' : '')}
+            ${homeStatCard('社長確認', presidentCheckCount, presidentCheckCount ? 'president' : '')}
           </div>
         </section>
       `;
@@ -1995,9 +2230,11 @@
       hideLoadingOverlay();
     }
 
-    async function renderDetail(caseId, taskId = '') {
+    async function renderDetail(caseId, taskId = '', options = {}) {
       showMessage('');
-      const data = await api('getCase', Object.assign({ caseId, taskId }, previewUserId ? { previewUserId } : {}));
+      const payload = Object.assign({ caseId, taskId }, previewUserId ? { previewUserId } : {});
+      if (options.forceFresh) payload._cacheBust = `${Date.now()}-${Math.random()}`;
+      const data = await api('getCase', payload, { background: !!options.background });
       previewInfo = data.preview || null;
       updateUserLabel();
       el('todayView').hidden = true;
@@ -2016,6 +2253,7 @@
 
     function applyDashboardData(data, view) {
       const payload = data || {};
+      if (payload.user) setUser(payload.user);
       previewInfo = payload.preview || null;
       homeSummary = payload.homeSummary || homeSummary;
       if (Object.prototype.hasOwnProperty.call(payload, 'todayTasks')) todayTasks = payload.todayTasks || [];
@@ -2027,23 +2265,207 @@
       updateHomeSummary();
     }
 
-    async function reloadData(view = currentView) {
+    async function reloadData(view = currentView, options = {}) {
       const targetView = VIEW_TITLES[view] ? view : 'today';
       const scoped = previewUserId ? { previewUserId } : {};
-      applyDashboardData(await api('dashboard', Object.assign({}, scoped, { view: targetView })), targetView);
+      const payload = Object.assign({}, scoped, { view: targetView });
+      if (options.forceFresh) payload._cacheBust = `${Date.now()}-${Math.random()}`;
+      const data = await api('dashboard', payload, { background: !!options.background });
+      applyDashboardData(data, targetView);
+      if (!options.skipClientCache) writeClientDashboardCache(targetView, data);
+      return data;
+    }
+
+    function scheduleBackgroundTask(fn, delayMs) {
+      const run = () => {
+        Promise.resolve()
+          .then(fn)
+          .catch((err) => {
+            debugLog('background_task_error', {
+              level: 'WARN',
+              message: err.message || String(err),
+            });
+          });
+      };
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(run, { timeout: Math.max(1000, delayMs || 0) });
+      } else {
+        setTimeout(run, delayMs || 0);
+      }
+    }
+
+    function prefetchViewsAfterInitialLoad(initialView) {
+      if (previewUserId || !currentUser || activeCaseId) return;
+      const views = ['cases', 'calendar', 'settings'].filter((view) => view !== initialView);
+      if (!views.length) return;
+      debugLog('prefetch_queue', { views: views.join(',') });
+      scheduleBackgroundTask(async () => {
+        for (const view of views) {
+          if (previewUserId || activeCaseId) break;
+          if (loadedViews[view]) continue;
+          await wait(700);
+          if (interactionLocked || loadedViews[view]) continue;
+          try {
+            debugLog('prefetch_start', { view });
+            await reloadData(view, { background: true });
+            debugLog('prefetch_success', { view });
+          } catch (err) {
+            debugLog('prefetch_error', {
+              level: 'WARN',
+              view,
+              message: err.message || String(err),
+            });
+          }
+        }
+      }, 900);
     }
 
     async function openView(view) {
       const targetView = VIEW_TITLES[view] ? view : 'today';
-      if (!loadedViews[targetView]) {
-        setLoading(`${VIEW_TITLES[targetView] || '画面'}を読み込んでいます。`);
-        await reloadData(targetView);
+      try {
+        if (!loadedViews[targetView]) {
+          setLoading(`${VIEW_TITLES[targetView] || '画面'}を読み込んでいます。`);
+          await reloadData(targetView);
+        }
+        renderView(targetView);
+      } finally {
+        hideLoadingOverlay();
       }
-      renderView(targetView);
     }
 
     function resetLoadedViews() {
       loadedViews = {};
+    }
+
+    function findLocalTaskById(taskId) {
+      const id = String(taskId || '');
+      return (todayTasks || []).find((task) => String(task.taskId || '') === id)
+        || (calendarItems || []).find((task) => String(task.taskId || '') === id)
+        || null;
+    }
+
+    function normalizeTaskCompletion(taskId, updatedTask, previousTask, completed) {
+      const task = Object.assign({}, previousTask || {}, updatedTask || {});
+      task.taskId = task.taskId || taskId;
+      task.completed = !!completed;
+      if (completed) {
+        task.status = '完了';
+      } else if (updatedTask && updatedTask.status) {
+        task.status = updatedTask.status;
+      } else if (task.status === '完了') {
+        task.status = '予定';
+      }
+      return task;
+    }
+
+    function updateCountValue(value, delta) {
+      const next = Number(value || 0) + delta;
+      return Math.max(0, next);
+    }
+
+    function updateSummaryCountsAfterTaskChange(previousTask, updatedTask, completed, wasInToday) {
+      if (!homeSummary || !previousTask || previousTask.completed === completed) return;
+      const delta = completed ? -1 : 1;
+      const statusTask = completed ? previousTask : updatedTask;
+      const status = statusTask && statusTask.status;
+      homeSummary = Object.assign({}, homeSummary);
+      if (typeof homeSummary.incompleteCount === 'number') {
+        homeSummary.incompleteCount = updateCountValue(homeSummary.incompleteCount, delta);
+      }
+      if (wasInToday && typeof homeSummary.todayCount === 'number') {
+        homeSummary.todayCount = updateCountValue(homeSummary.todayCount, delta);
+      }
+      if ((status === '期限超過' || status === '期限接近') && typeof homeSummary.alertCount === 'number') {
+        homeSummary.alertCount = updateCountValue(homeSummary.alertCount, delta);
+      }
+      if (status === '期限超過' && typeof homeSummary.overdueCount === 'number') {
+        homeSummary.overdueCount = updateCountValue(homeSummary.overdueCount, delta);
+      }
+      if (status === '期限接近' && typeof homeSummary.approachingCount === 'number') {
+        homeSummary.approachingCount = updateCountValue(homeSummary.approachingCount, delta);
+      }
+      if (statusTask && statusTask.presidentCheck && typeof homeSummary.presidentCheckCount === 'number') {
+        homeSummary.presidentCheckCount = updateCountValue(homeSummary.presidentCheckCount, delta);
+      }
+    }
+
+    function updateCaseCountsAfterTaskChange(previousTask, updatedTask, completed) {
+      if (!previousTask || previousTask.completed === completed) return;
+      const caseId = previousTask.caseId || (updatedTask && updatedTask.caseId);
+      if (!caseId) return;
+      const delta = completed ? -1 : 1;
+      const statusTask = completed ? previousTask : updatedTask;
+      const status = statusTask && statusTask.status;
+      cases = (cases || []).map((item) => {
+        if (item.caseId !== caseId) return item;
+        const next = Object.assign({}, item);
+        next.incompleteCount = updateCountValue(next.incompleteCount, delta);
+        if (status === '期限超過') next.overdueCount = updateCountValue(next.overdueCount, delta);
+        if (status === '期限接近') next.approachingCount = updateCountValue(next.approachingCount, delta);
+        return next;
+      });
+    }
+
+    function replaceTaskInList(list, taskId, updatedTask) {
+      const id = String(taskId || '');
+      return (list || []).map((task) =>
+        String(task.taskId || '') === id ? Object.assign({}, task, updatedTask) : task
+      );
+    }
+
+    function applyTaskCompletionLocally(taskId, updatedTask, completed, previousTask, wasInToday) {
+      const task = normalizeTaskCompletion(taskId, updatedTask, previousTask, completed);
+      updateSummaryCountsAfterTaskChange(previousTask, task, completed, wasInToday);
+      updateCaseCountsAfterTaskChange(previousTask, task, completed);
+      todayTasks = completed
+        ? (todayTasks || []).filter((item) => String(item.taskId || '') !== String(taskId || ''))
+        : replaceTaskInList(todayTasks, taskId, task);
+      calendarItems = replaceTaskInList(calendarItems, taskId, task);
+      updateHomeSummary();
+      return task;
+    }
+
+    function updateRenderedTaskCard(taskId, task) {
+      if (!task || !task.taskId) return false;
+      const card = document.getElementById(`task-${taskId}`);
+      if (!card) return false;
+      card.outerHTML = taskCard(task, {
+        compact: card.classList.contains('task-compact'),
+        focus: card.classList.contains('focus'),
+      });
+      return true;
+    }
+
+    function refreshAfterTaskCompletionInBackground(taskId, detailCaseId, viewAtAction) {
+      const targetView = VIEW_TITLES[viewAtAction] ? viewAtAction : DEFAULT_VIEW;
+      const serial = ++completionRefreshSerial;
+      if (completionRefreshTimer) clearTimeout(completionRefreshTimer);
+      debugLog('task_completion_refresh_queue', {
+        taskId,
+        view: targetView,
+        caseId: detailCaseId || '',
+        delayMs: COMPLETION_REFRESH_DELAY_MS,
+      });
+      completionRefreshTimer = setTimeout(() => {
+        completionRefreshTimer = null;
+        scheduleBackgroundTask(async () => {
+          if (serial !== completionRefreshSerial) return;
+          if (interactionLocked) {
+            debugLog('task_completion_refresh_deferred_busy', { taskId, view: targetView, caseId: detailCaseId || '' });
+            refreshAfterTaskCompletionInBackground(taskId, detailCaseId, viewAtAction);
+            return;
+          }
+          debugLog('task_completion_refresh_start', { taskId, view: targetView, caseId: detailCaseId || '' });
+          resetLoadedViews();
+          await reloadData(targetView, { forceFresh: true, background: true });
+          if (serial !== completionRefreshSerial) return;
+          if (!activeCaseId && currentView === targetView) renderView(targetView);
+          if (detailCaseId && activeCaseId === detailCaseId && !el('detailView').hidden) {
+            await renderDetail(detailCaseId, taskId, { forceFresh: true, background: true });
+          }
+          debugLog('task_completion_refresh_success', { taskId, view: targetView, caseId: detailCaseId || '' });
+        }, 0);
+      }, COMPLETION_REFRESH_DELAY_MS);
     }
 
     async function completeTask(taskId, reopen) {
@@ -2052,15 +2474,23 @@
         return;
       }
       showMessage('');
-      await api(reopen ? 'reopenTask' : 'completeTask', { taskId });
-      resetLoadedViews();
-      await reloadData(currentView);
+      const completed = !reopen;
       const visibleDetail = !el('detailView').hidden;
+      const detailCaseId = visibleDetail ? activeCaseId : '';
+      const viewAtAction = currentView;
+      const previousTask = findLocalTaskById(taskId);
+      const wasInToday = (todayTasks || []).some((task) => String(task.taskId || '') === String(taskId || ''));
+      const data = await api(reopen ? 'reopenTask' : 'completeTask', { taskId, fast: true }, { timeoutMs: 12000 });
+      const updatedTask = applyTaskCompletionLocally(taskId, data && data.task, completed, previousTask, wasInToday);
+      resetLoadedViews();
+      clearClientDashboardCache();
       if (visibleDetail) {
-        if (activeCaseId) await renderDetail(activeCaseId, taskId);
+        updateRenderedTaskCard(taskId, updatedTask);
       } else {
-        renderView(currentView);
+        renderView(viewAtAction);
       }
+      showMessage(`${reopen ? '未完了に戻しました' : '完了にしました'}。最新情報は裏で確認しています。`, 'notice');
+      refreshAfterTaskCompletionInBackground(taskId, detailCaseId, viewAtAction);
     }
 
     async function requestRegistration() {
@@ -2077,8 +2507,10 @@
         if (result.user) setUser(result.user);
         setLoading('案件情報を読み込んでいます。');
         resetLoadedViews();
-        await reloadData(DEFAULT_VIEW);
+        clearClientDashboardCache();
+        await reloadData(DEFAULT_VIEW, { forceFresh: true });
         renderView(DEFAULT_VIEW);
+        prefetchViewsAfterInitialLoad(DEFAULT_VIEW);
         return;
       }
       setLoading('登録申請を確認しています。');
@@ -2092,7 +2524,7 @@
       previewUserId = select ? select.value : '';
       setLoading('担当者表示を確認しています。');
       resetLoadedViews();
-      await reloadData(currentView);
+      await reloadData(currentView, { forceFresh: true });
       renderView(currentView);
     }
 
@@ -2101,8 +2533,33 @@
       previewInfo = null;
       setLoading('表示を戻しています。');
       resetLoadedViews();
-      await reloadData(currentView);
+      await reloadData(currentView, { forceFresh: true });
       renderView(currentView);
+    }
+
+    async function switchDemoRole(role) {
+      const nextRole = normalizeDemoRole(role) || 'admin';
+      demoMode = true;
+      demoRole = nextRole;
+      idToken = '';
+      previewUserId = '';
+      previewInfo = null;
+      activeCaseId = '';
+      setLineProfile({
+        lineUserId: `demo-line-${nextRole}`,
+        displayName: demoDisplayName(nextRole),
+      }, 'デモ');
+      const url = new URL(location.href);
+      url.searchParams.set('demo', '1');
+      url.searchParams.set('demoRole', nextRole);
+      window.history.replaceState(null, '', url.toString());
+      setLoading(`${demoRoleLabel(nextRole)}のデモ表示を読み込んでいます。`);
+      resetLoadedViews();
+      await prepareClientDashboardCacheScope();
+      clearClientDashboardCache();
+      await reloadData(currentView, { forceFresh: true });
+      renderView(currentView);
+      showMessage(`${demoRoleLabel(nextRole)}のデモ表示に切り替えました。`, 'notice');
     }
 
     async function setupTestSamples() {
@@ -2116,7 +2573,8 @@
       const data = await api('setupTestSamples', { targetUserId });
       previewUserId = targetUserId;
       resetLoadedViews();
-      await reloadData(currentView);
+      clearClientDashboardCache();
+      await reloadData(currentView, { forceFresh: true });
       renderSettings();
       const result = data.result || {};
       showMessage(`TESTサンプルを作成しました。\n案件ID: ${result.caseId || ''}\n割り当て先: ${result.targetDisplayName || result.targetUserId || ''}`, 'notice');
@@ -2132,7 +2590,8 @@
       previewUserId = '';
       previewInfo = null;
       resetLoadedViews();
-      await reloadData(currentView);
+      clearClientDashboardCache();
+      await reloadData(currentView, { forceFresh: true });
       renderSettings();
       const result = data.result || {};
       showMessage(`TESTサンプルを削除しました。\n案件:${result.cases || 0} / 工程:${result.tasks || 0} / 案件担当:${result.caseAssignees || 0} / 工程担当:${result.taskAssignees || 0}`, 'notice');
@@ -2176,7 +2635,8 @@
       previewUserId = '';
       previewInfo = null;
       resetLoadedViews();
-      await reloadData(currentView);
+      clearClientDashboardCache();
+      await reloadData(currentView, { forceFresh: true });
       const result = data.result || {};
       const message = `案件を作成しました。\n案件ID: ${result.caseId || ''}`;
       if (result.caseId) await renderDetail(result.caseId);
@@ -2230,6 +2690,7 @@
         else if (button.dataset.requestRegistration) await requestRegistration();
         else if (button.dataset.applyPreview) await applyPreviewMode();
         else if (button.dataset.clearPreview) await clearPreviewMode();
+        else if (button.dataset.demoRole) await switchDemoRole(button.dataset.demoRole);
         else if (button.dataset.setupTestSamples) await setupTestSamples();
         else if (button.dataset.cleanupTestSamples) await cleanupTestSamples();
         else if (button.dataset.createCase) await createCaseFromLiff();
@@ -2244,10 +2705,34 @@
       if (event.target && event.target.id === 'caseChannel') refreshProgramSelect();
     });
 
+    async function startDemoMode() {
+      demoRole = normalizeDemoRole(demoRole) || 'admin';
+      idToken = '';
+      setLineProfile({
+        lineUserId: `demo-line-${demoRole}`,
+        displayName: demoDisplayName(demoRole),
+      }, 'デモ');
+      debugLog('demo_start', { demoRole });
+      setLoading('デモ用データを読み込んでいます。');
+      await prepareClientDashboardCacheScope();
+      const caseId = qs.get('caseId');
+      const taskId = qs.get('taskId');
+      const renderedFromClientCache = !(caseId || taskId) && renderClientDashboardCache(DEFAULT_VIEW);
+      await reloadData(DEFAULT_VIEW, { forceFresh: renderedFromClientCache });
+      if (caseId || taskId) await renderDetail(caseId || '', taskId || '');
+      else if (!renderedFromClientCache || currentView === DEFAULT_VIEW) renderView(DEFAULT_VIEW);
+      showMessage('デモモードで表示しています。LINE送信など外部連携は実行されません。', 'notice');
+      if (!(caseId || taskId)) prefetchViewsAfterInitialLoad(DEFAULT_VIEW);
+    }
+
     async function start() {
       try {
         debugLog('start');
         setLoading('LIFF認証を確認しています。');
+        if (demoMode) {
+          await startDemoMode();
+          return;
+        }
         if (!LIFF_ID) throw new Error('LIFF_ID が未設定です。Apps Script のスクリプトプロパティを確認してください。');
         if (isAppsScriptSandboxHost()) {
           debugLog('gas_htmlservice_sandbox_detected', {
@@ -2264,8 +2749,18 @@
         }
         debugLog('liff_init_start');
         await withTimeout(liff.init({ liffId: LIFF_ID }), 'LIFF初期化');
-        debugLog('liff_init_success', { isLoggedIn: liff.isLoggedIn() });
+        debugLog('liff_init_success', {
+          isLoggedIn: liff.isLoggedIn(),
+          isInClient: typeof liff.isInClient === 'function' ? liff.isInClient() : false,
+        });
         if (!liff.isLoggedIn()) {
+          if (typeof liff.isInClient === 'function' && !liff.isInClient()) {
+            debugLog('external_browser_not_logged_in');
+            showMessage('LINEアプリ内のLIFF URLから開いてください。LINE DevelopersでスプシLIFF専用のEndpoint URLをこのURLに設定すると利用できます。', true);
+            el('todayView').innerHTML = '';
+            hideLoadingOverlay();
+            return;
+          }
           debugLog('liff_login_redirect');
           liff.login({ redirectUri: location.href });
           return;
@@ -2273,19 +2768,32 @@
         idToken = liff.getIDToken();
         debugLog('id_token_checked', { hasIdToken: !!idToken });
         if (!idToken) throw new Error('LIFFのIDトークンを取得できませんでした。');
-        setLoading('案件情報を読み込んでいます。');
+        await prepareClientDashboardCacheScope();
+        const caseId = qs.get('caseId');
+        const taskId = qs.get('taskId');
+        const renderedFromClientCache = !(caseId || taskId) && renderClientDashboardCache(DEFAULT_VIEW);
+        if (!renderedFromClientCache) setLoading('案件情報を読み込んでいます。');
         try {
-          await reloadData(DEFAULT_VIEW);
+          await reloadData(DEFAULT_VIEW, { forceFresh: renderedFromClientCache });
           debugLog('data_loaded', {
             active: true,
             source: 'dashboard',
+            clientCacheShown: renderedFromClientCache,
           });
-          const caseId = qs.get('caseId');
-          const taskId = qs.get('taskId');
           if (caseId || taskId) await renderDetail(caseId || '', taskId || '');
-          else renderView(DEFAULT_VIEW);
+          else if (!renderedFromClientCache || currentView === DEFAULT_VIEW) renderView(DEFAULT_VIEW);
+          showMessage('');
+          if (!(caseId || taskId)) prefetchViewsAfterInitialLoad(DEFAULT_VIEW);
           return;
         } catch (dashboardErr) {
+          if (renderedFromClientCache && isRetryableApiError(dashboardErr)) {
+            debugLog('dashboard_refresh_failed_after_client_cache', {
+              level: 'WARN',
+              message: dashboardErr.message || String(dashboardErr),
+            });
+            showMessage('前回表示を表示しています。最新情報の確認に時間がかかっています。', 'notice');
+            return;
+          }
           if (!shouldFallbackToIdentity(dashboardErr)) throw dashboardErr;
           debugLog('dashboard_identity_fallback', {
             message: dashboardErr.message || String(dashboardErr),
@@ -2321,15 +2829,14 @@
         }
         if (identity.user) setUser(identity.user);
         setLoading('案件情報を読み込んでいます。');
-        await reloadData(DEFAULT_VIEW);
+        await reloadData(DEFAULT_VIEW, { forceFresh: true });
         debugLog('data_loaded', {
           lineUserId: identity.profile && identity.profile.lineUserId,
           active: identity.active,
         });
-        const caseId = qs.get('caseId');
-        const taskId = qs.get('taskId');
         if (caseId || taskId) await renderDetail(caseId || '', taskId || '');
         else renderView(DEFAULT_VIEW);
+        if (!(caseId || taskId)) prefetchViewsAfterInitialLoad(DEFAULT_VIEW);
       } catch (err) {
         debugLog('start_error', {
           level: 'ERROR',
