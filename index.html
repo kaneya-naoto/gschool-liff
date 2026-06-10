@@ -343,6 +343,85 @@
       font-size: 12px;
       font-weight: 700;
     }
+    .detail-dashboard {
+      display: grid;
+      gap: 10px;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow), var(--ring);
+      padding: 12px;
+    }
+    .detail-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .detail-head h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+    .detail-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .detail-stat {
+      min-height: 50px;
+      border-radius: 8px;
+      background: #f9fafb;
+      padding: 8px;
+      box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.06) inset;
+    }
+    .detail-stat b {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+    }
+    .detail-stat strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+    .detail-stat.overdue { background: #fef2f2; color: var(--danger); }
+    .detail-stat.near { background: #fffbeb; color: var(--warn); }
+    .detail-toolbar {
+      display: grid;
+      gap: 8px;
+    }
+    .detail-filters,
+    .detail-bulk-actions {
+      display: grid;
+      gap: 6px;
+    }
+    .detail-filters {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .detail-bulk-actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .detail-filters button,
+    .detail-bulk-actions button {
+      min-height: 38px;
+      padding: 7px 8px;
+      font-size: 12px;
+    }
+    .detail-filters button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    @media (max-width: 560px) {
+      .detail-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .detail-filters,
+      .detail-bulk-actions {
+        grid-template-columns: 1fr;
+      }
+    }
     .today-sample {
       display: grid;
       gap: 8px;
@@ -970,7 +1049,6 @@
     <button class="menu-btn active" type="button" data-view="today"><b>ホ</b>ホーム</button>
     <button class="menu-btn" type="button" data-view="cases"><b>件</b>案件</button>
     <button class="menu-btn" type="button" data-view="calendar"><b>月</b>予定</button>
-    <button class="menu-btn" type="button" data-view="settings"><b>設</b>設定</button>
   </nav>
 
   <script>
@@ -987,6 +1065,10 @@
     let demoMode = false;
     let demoRole = '';
     let activeCaseId = '';
+    let detailCase = null;
+    let detailTasks = [];
+    let detailFocusTaskId = '';
+    let detailFilter = 'all';
     let lastIdentity = null;
     let interactionLocked = false;
     let homeSummary = null;
@@ -997,6 +1079,8 @@
     let clientDashboardCacheScope = '';
     let completionRefreshTimer = null;
     let completionRefreshSerial = 0;
+    let localDemoFallback = false;
+    let localDemoTaskState = null;
 
     const el = (id) => document.getElementById(id);
     const qs = new URLSearchParams(location.search);
@@ -1008,6 +1092,12 @@
     const CLIENT_DASHBOARD_CACHE_PREFIX = 'gsq:sheets-liff:dashboard:v2';
     const CLIENT_DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
     const COMPLETION_REFRESH_DELAY_MS = 4000;
+    const DETAIL_FILTERS = {
+      all: '全工程',
+      attention: '期限対応',
+      incomplete: '未完了',
+      done: '完了済み',
+    };
     const clientDebugEvents = [];
     const READ_API_ACTIONS = {
       whoami: true,
@@ -1135,6 +1225,12 @@
 
     function userFacingError(err) {
       const message = (err && err.message) || String(err || '');
+      if (isSetupSchemaMissingError(err)) {
+        return [
+          '表示に必要なデータを準備中です。',
+          '管理者に設定状況の確認を依頼してください。',
+        ].join('\n');
+      }
       if (
         message.indexOf('タイムアウト') >= 0 ||
         message.indexOf('Failed to fetch') >= 0 ||
@@ -1149,11 +1245,18 @@
       ) {
         return [
           '読み込みに時間がかかっています。',
-          '少し待ってから、LINEアプリで開き直してください。',
+          '少し待ってから、このURLを開き直してください。',
           '何度も出る場合は、管理者にこの画面の内容を共有してください。',
         ].join('\n');
       }
       return message || '処理中にエラーが発生しました。時間をおいて開き直してください。';
+    }
+
+    function isSetupSchemaMissingError(err) {
+      const message = (err && err.message) || String(err || '');
+      return message.indexOf('setupSchema()') >= 0
+        || message.indexOf('シート「案件_v3」が見つかりません') >= 0
+        || message.indexOf('シート「工程明細」が見つかりません') >= 0;
     }
 
     function wait(ms) {
@@ -1252,7 +1355,7 @@
       if (!cached) return false;
       applyDashboardData(cached, view);
       renderView(view);
-      showMessage('前回表示を先に表示しています。最新情報を確認中です。', 'notice');
+      showMessage('前回表示を先に表示しています。最新情報を読み込み中です。', 'notice');
       debugLog('client_cache_hit', { action: 'dashboard', view });
       return true;
     }
@@ -1349,6 +1452,8 @@
       if (button.dataset.case) return 'getCase';
       if (button.dataset.complete) return 'completeTask';
       if (button.dataset.reopen) return 'reopenTask';
+      if (button.dataset.bulkComplete) return 'bulkCompleteTasks';
+      if (button.dataset.bulkReopen) return 'bulkReopenTasks';
       if (button.dataset.requestRegistration) return 'requestRegistration';
       if (button.dataset.applyPreview) return 'applyPreview';
       if (button.dataset.clearPreview) return 'clearPreview';
@@ -1363,6 +1468,7 @@
       if (!button) return '';
       if (button.dataset.case) return '読み込み中';
       if (button.dataset.complete || button.dataset.reopen) return '更新中';
+      if (button.dataset.bulkComplete || button.dataset.bulkReopen) return '一括更新中';
       if (button.dataset.requestRegistration) return '申請中';
       if (button.dataset.applyPreview || button.dataset.clearPreview) return '切替中';
       if (button.dataset.demoRole) return '切替中';
@@ -1499,7 +1605,7 @@
       let timer = null;
       const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => {
-          reject(new Error(`${label}がタイムアウトしました。LINEアプリ内で開き直してください。`));
+          reject(new Error(`${label}がタイムアウトしました。通信環境を確認して開き直してください。`));
         }, ms);
       });
       return Promise.race([promise, timeout]).finally(() => {
@@ -1514,6 +1620,10 @@
 
     function isAdminUser() {
       return currentUser && currentUser.role === '管理者';
+    }
+
+    function canUseAdminTools() {
+      return demoMode || isAdminUser();
     }
 
     function isPreviewActive() {
@@ -1546,13 +1656,13 @@
       if (identity && identity.registered && !identity.active) {
         return [
           '登録申請は送信済みです。',
-          '管理者が確認すると、この画面で今日やることを見られるようになります。',
-          'しばらくしてからLINEアプリで開き直してください。',
+          '管理者が有効化すると、この画面で今日やることを見られるようになります。',
+          'しばらくしてから、このURLを開き直してください。',
         ].filter(Boolean).join('\n');
       }
       return [
         'このLINEアカウントはまだ利用登録されていません。',
-        '登録申請を自動で送信します。管理者の確認後に使えるようになります。',
+        '登録申請を自動で送信します。管理者が有効化した後に使えるようになります。',
       ].filter(Boolean).join('\n');
     }
 
@@ -1567,7 +1677,7 @@
       el('settingsView').hidden = true;
       el('detailView').hidden = true;
       el('todayView').innerHTML = identity && identity.registered
-        ? '<div class="empty">管理者の確認待ちです。確認が終わると、今日やることがここに表示されます。</div>'
+        ? '<div class="empty">管理者の有効化待ちです。有効化されると、今日やることがここに表示されます。</div>'
         : `
           <div class="actions">
             <button class="primary" type="button" data-request-registration="1">利用登録を申請する</button>
@@ -1607,6 +1717,10 @@
     }
 
     async function api(action, body = {}, options = {}) {
+      if (demoMode && localDemoFallback) {
+        debugLog('api_local_demo', { action });
+        return localDemoApi(action, body || {});
+      }
       const attempts = options.background ? 1 : (READ_API_ACTIONS[action] ? 2 : 1);
       const timeoutMs = options.timeoutMs || (options.background ? 12000 : (action === 'dashboard' ? 25000 : 15000));
       for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -1638,6 +1752,10 @@
             attempt,
             error: err.message || String(err),
           });
+          if (demoMode && isSetupSchemaMissingError(err)) {
+            activateLocalDemoFallback(err);
+            return localDemoApi(action, body || {});
+          }
           if (attempt < attempts && isRetryableApiError(err)) {
             showLoadingOverlay('読み込みに時間がかかっています。もう一度だけ試しています。');
             await wait(700);
@@ -1648,9 +1766,9 @@
       }
     }
 
-    function taskActionButtons(task) {
+    function taskActionButtons(task, options = {}) {
       if (task.sample) return '<span class="sample-pill">表示サンプル</span>';
-      const detailButton = `<button class="secondary" type="button" data-case="${escapeHtml(task.caseId)}">案件を見る</button>`;
+      const detailButton = options.hideCaseButton ? '' : `<button class="secondary" type="button" data-case="${escapeHtml(task.caseId)}">案件を見る</button>`;
       const actionButton = isPreviewActive()
         ? ''
         : task.completed
@@ -1682,7 +1800,7 @@
           <div class="meta">${meta}</div>
           <p class="subtle">${escapeHtml(task.caseTitle)}</p>
           ${detailBlock}
-          <div class="actions">${taskActionButtons(task)}</div>
+          <div class="actions">${taskActionButtons(task, { hideCaseButton: options.hideCaseButton })}</div>
         </article>
       `;
     }
@@ -1700,7 +1818,7 @@
       if (demoMode) {
         notices.push(`
           <div class="notice demo">
-            デモモード: ${escapeHtml(demoRoleLabel(demoRole))}として表示しています。LINE送信など外部連携は実送信しません。
+            デモモード: ${escapeHtml(demoRoleLabel(demoRole))}として表示しています。外部通知は送信されません。
             <div class="demo-switch" role="group" aria-label="デモ表示切替">
               <button type="button" class="${demoRole === 'admin' ? 'primary' : 'secondary'}" data-demo-role="admin">管理者</button>
               <button type="button" class="${demoRole === 'member' ? 'primary' : 'secondary'}" data-demo-role="member">作業者</button>
@@ -1733,6 +1851,96 @@
           </div>
         </article>
       `;
+    }
+
+    function normalizeDetailFilter(filter) {
+      return DETAIL_FILTERS[filter] ? filter : 'all';
+    }
+
+    function isAttentionTask(task) {
+      return !!(task && !task.completed && (task.status === '期限超過' || task.status === '期限接近'));
+    }
+
+    function detailTaskCounts(tasks) {
+      const list = tasks || [];
+      return {
+        all: list.length,
+        attention: list.filter(isAttentionTask).length,
+        incomplete: list.filter((task) => !task.completed).length,
+        done: list.filter((task) => task.completed).length,
+        overdue: list.filter((task) => !task.completed && task.status === '期限超過').length,
+        near: list.filter((task) => !task.completed && task.status === '期限接近').length,
+      };
+    }
+
+    function filteredDetailTasks(tasks) {
+      const filter = normalizeDetailFilter(detailFilter);
+      const list = tasks || [];
+      if (filter === 'attention') return list.filter(isAttentionTask);
+      if (filter === 'incomplete') return list.filter((task) => !task.completed);
+      if (filter === 'done') return list.filter((task) => task.completed);
+      return list;
+    }
+
+    function detailFilterButton(filter, label, count) {
+      const active = normalizeDetailFilter(detailFilter) === filter;
+      return `<button type="button" data-detail-filter="${filter}" class="${active ? 'active' : ''}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(label)} ${escapeHtml(count)}</button>`;
+    }
+
+    function detailEmptyText() {
+      const filter = normalizeDetailFilter(detailFilter);
+      if (filter === 'attention') return '期限対応が必要な工程はありません。';
+      if (filter === 'incomplete') return '未完了の工程はありません。';
+      if (filter === 'done') return '完了済みの工程はありません。';
+      return 'この案件の作業はありません。';
+    }
+
+    function detailDashboardHtml(caseInfo, tasks, visibleTasks) {
+      const counts = detailTaskCounts(tasks);
+      const completeTargets = (visibleTasks || []).filter((task) => !task.sample && !task.completed).length;
+      const reopenTargets = (visibleTasks || []).filter((task) => !task.sample && task.completed).length;
+      return `
+        <section class="detail-dashboard" aria-label="案件の工程管理">
+          <div class="detail-head">
+            <div>
+              <span class="eyebrow">案件ページ</span>
+              <h2>${escapeHtml((caseInfo && caseInfo.title) || '案件')}</h2>
+              <p class="subtle">${escapeHtml((caseInfo && caseInfo.caseType) || '')}</p>
+            </div>
+            <span class="badge pending">${escapeHtml((caseInfo && caseInfo.caseId) || '')}</span>
+          </div>
+          <div class="detail-stats">
+            <span class="detail-stat"><b>全工程</b><strong>${escapeHtml(counts.all)}</strong></span>
+            <span class="detail-stat overdue"><b>期限超過</b><strong>${escapeHtml(counts.overdue)}</strong></span>
+            <span class="detail-stat near"><b>期限接近</b><strong>${escapeHtml(counts.near)}</strong></span>
+            <span class="detail-stat"><b>未完了</b><strong>${escapeHtml(counts.incomplete)}</strong></span>
+          </div>
+          <div class="detail-toolbar">
+            <div class="detail-filters" role="group" aria-label="工程フィルタ">
+              ${detailFilterButton('all', DETAIL_FILTERS.all, counts.all)}
+              ${detailFilterButton('attention', DETAIL_FILTERS.attention, counts.attention)}
+              ${detailFilterButton('incomplete', DETAIL_FILTERS.incomplete, counts.incomplete)}
+              ${detailFilterButton('done', DETAIL_FILTERS.done, counts.done)}
+            </div>
+            <div class="detail-bulk-actions" role="group" aria-label="工程一括更新">
+              <button class="primary" type="button" data-bulk-complete="visible" ${completeTargets ? '' : 'disabled'}>表示中を完了 ${escapeHtml(completeTargets)}</button>
+              <button class="danger" type="button" data-bulk-reopen="visible" ${reopenTargets ? '' : 'disabled'}>表示中を未完了 ${escapeHtml(reopenTargets)}</button>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderDetailContent() {
+      const visibleTasks = filteredDetailTasks(detailTasks);
+      el('detailView').innerHTML = previewNoticeHtml()
+        + detailDashboardHtml(detailCase, detailTasks, visibleTasks)
+        + (visibleTasks.length
+          ? visibleTasks.map((task) => taskCard(task, {
+            focus: task.taskId === detailFocusTaskId,
+            hideCaseButton: true,
+          })).join('')
+          : `<div class="empty">${detailEmptyText()}</div>`);
     }
 
     function getHomeSummaryValue(key, fallback) {
@@ -1792,7 +2000,7 @@
             ${homeStatCard('未完了工程', incompleteCount)}
             ${homeStatCard('期限超過', summaryOverdueCount, summaryOverdueCount ? 'overdue' : '')}
             ${homeStatCard('期限接近', summaryNearCount, summaryNearCount ? 'near' : '')}
-            ${homeStatCard('社長確認', presidentCheckCount, presidentCheckCount ? 'president' : '')}
+            ${homeStatCard('共有事項', presidentCheckCount, presidentCheckCount ? 'president' : '')}
           </div>
         </section>
       `;
@@ -1804,37 +2012,197 @@
         {
           taskId: 'sample-today-1',
           caseId: 'sample-case-1',
-          taskName: '台本初稿の確認',
-          caseTitle: '[表示サンプル] 月例番組 6月 第1回',
+          taskName: '香盤表',
+          caseTitle: '[表示サンプル] 月例パチンコ番組 6月 第1回',
           status: '期限接近',
           dueDate: today,
-          locationName: 'オンライン',
-          targetName: '番組台本',
+          locationName: '店舗A',
+          targetName: '撮影当日資料',
           sample: true,
         },
         {
           taskId: 'sample-today-2',
           caseId: 'sample-case-2',
-          taskName: '撮影素材の受け取り連絡',
-          caseTitle: '[表示サンプル] YouTubeショート制作',
+          taskName: '告知ポスト依頼',
+          caseTitle: '[表示サンプル] 来店イベント 6月',
           status: '予定',
           dueDate: today,
-          locationName: '社内',
-          targetName: '撮影素材',
+          locationName: '店舗B',
+          targetName: '演者SNS',
           sample: true,
         },
       ];
     }
 
+    function activateLocalDemoFallback(err) {
+      if (!localDemoFallback) {
+        debugLog('local_demo_fallback_enabled', {
+          level: 'WARN',
+          message: err && err.message ? err.message : String(err || ''),
+        });
+      }
+      localDemoFallback = true;
+    }
+
+    function localDemoUser() {
+      return {
+        userId: 'demo-worker',
+        displayName: demoRole === 'admin' ? 'デモ管理者' : 'デモ作業者',
+        role: demoRole === 'admin' ? '管理者' : '社内担当者',
+      };
+    }
+
+    function createLocalDemoTasks() {
+      const base = todayDate();
+      return [
+        {
+          taskId: 'demo-task-1',
+          caseId: 'demo-case-1',
+          taskName: '香盤表の確認',
+          caseTitle: '[サンプル] 月例パチンコ番組 6月 第1回',
+          status: '期限接近',
+          originalStatus: '期限接近',
+          dueDate: dateKey(addDays(base, 2)),
+          locationName: '店舗A',
+          targetName: '撮影当日資料',
+          assignee: 'デモ作業者',
+        },
+        {
+          taskId: 'demo-task-2',
+          caseId: 'demo-case-2',
+          taskName: '告知ポスト依頼',
+          caseTitle: '[サンプル] 来店イベント 6月',
+          status: '予定',
+          originalStatus: '予定',
+          dueDate: dateKey(addDays(base, 5)),
+          locationName: '店舗B',
+          targetName: '演者SNS',
+          assignee: 'デモ作業者',
+        },
+        {
+          taskId: 'demo-task-3',
+          caseId: 'demo-case-3',
+          taskName: 'ロケ/店舗手配',
+          caseTitle: '[サンプル] 店舗取材 6月',
+          status: '期限超過',
+          originalStatus: '期限超過',
+          dueDate: dateKey(addDays(base, -1)),
+          locationName: '店舗C',
+          targetName: '取材先',
+          assignee: 'デモ作業者',
+        },
+        {
+          taskId: 'demo-task-4',
+          caseId: 'demo-case-1',
+          taskName: '編集素材受領',
+          caseTitle: '[サンプル] 月例パチンコ番組 6月 第1回',
+          status: '完了',
+          originalStatus: '予定',
+          dueDate: dateKey(addDays(base, 8)),
+          locationName: '編集チーム',
+          targetName: '素材一式',
+          assignee: 'デモ作業者',
+          completed: true,
+        },
+      ];
+    }
+
+    function localDemoTasks() {
+      if (!localDemoTaskState) localDemoTaskState = createLocalDemoTasks();
+      return localDemoTaskState;
+    }
+
+    function localDemoCases() {
+      const caseMap = {};
+      localDemoTasks().forEach((task) => {
+        caseMap[task.caseId] = caseMap[task.caseId] || {
+          caseId: task.caseId,
+          title: task.caseTitle,
+          caseType: task.caseId === 'demo-case-1' ? 'パチンコ番組' : (task.caseId === 'demo-case-2' ? '来店イベント' : '店舗取材'),
+          assignee: 'デモ作業者',
+          incompleteCount: 0,
+          overdueCount: 0,
+          approachingCount: 0,
+        };
+        if (!task.completed) {
+          caseMap[task.caseId].incompleteCount += 1;
+          if (task.status === '期限超過') caseMap[task.caseId].overdueCount += 1;
+          if (task.status === '期限接近') caseMap[task.caseId].approachingCount += 1;
+        }
+      });
+      return Object.keys(caseMap).map((key) => caseMap[key]);
+    }
+
+    function localDemoDashboardData() {
+      const tasks = localDemoTasks();
+      const visibleTasks = tasks.filter((task) => !task.completed);
+      const demoCases = localDemoCases();
+      return {
+        user: localDemoUser(),
+        todayTasks: visibleTasks,
+        cases: demoCases,
+        calendarItems: tasks,
+        homeSummary: {
+          todayCount: visibleTasks.length,
+          caseCount: demoCases.length,
+          incompleteCount: visibleTasks.length,
+          overdueCount: visibleTasks.filter((task) => task.status === '期限超過').length,
+          approachingCount: visibleTasks.filter((task) => task.status === '期限接近').length,
+          alertCount: visibleTasks.filter((task) => task.status === '期限超過' || task.status === '期限接近').length,
+          presidentCheckCount: 1,
+        },
+        adminOptions: {
+          users: [{ userId: 'demo-worker', displayName: 'デモ作業者' }],
+          caseTypes: ['パチンコ番組', '来店イベント', '店舗取材'],
+          channels: ['サンプルチャンネル'],
+          programs: ['月例パチンコ番組'],
+        },
+      };
+    }
+
+    function localDemoCaseData(caseId, taskId) {
+      const demoCases = localDemoCases();
+      const selected = demoCases.find((item) => String(item.caseId) === String(caseId)) || demoCases[0];
+      return {
+        user: localDemoUser(),
+        case: selected,
+        tasks: localDemoTasks().filter((task) => task.caseId === selected.caseId),
+        focusTaskId: taskId || '',
+      };
+    }
+
+    function updateLocalDemoTask(taskId, completed) {
+      const task = localDemoTasks().find((item) => String(item.taskId) === String(taskId));
+      if (!task) return null;
+      task.completed = completed;
+      task.status = completed ? '完了' : (task.originalStatus || '予定');
+      return Object.assign({}, task);
+    }
+
+    function localDemoApi(action, body) {
+      if (action === 'getCase') return localDemoCaseData(body && body.caseId, body && body.taskId);
+      if (action === 'completeTask') return { task: updateLocalDemoTask(body && body.taskId, true) };
+      if (action === 'reopenTask') return { task: updateLocalDemoTask(body && body.taskId, false) };
+      if (action === 'whoami') {
+        return {
+          registered: true,
+          active: true,
+          profile: { lineUserId: 'demo-line-local', displayName: localDemoUser().displayName },
+          user: localDemoUser(),
+        };
+      }
+      return localDemoDashboardData();
+    }
+
     function renderTodaySample() {
-      if (!isAdminUser() || todayTasks.length) return '';
+      if (!canUseAdminTools() || todayTasks.length) return '';
       return `
         <section class="today-sample" aria-label="今日画面の表示サンプル">
           <div class="today-sample-head">
             <h2>今日の対応サンプル</h2>
-            <span>管理者だけ表示</span>
+            <span>デモ/管理者表示</span>
           </div>
-          <p>今日の実データがない時でも、カードの見え方を確認できます。これは実データではありません。</p>
+          <p>今日の実データがない時だけ、カードの見え方を表示します。これは実データではありません。</p>
           ${demoTodayTasks().map((task) => taskCard(task, { compact: true })).join('')}
         </section>
       `;
@@ -2033,7 +2401,7 @@
         <div class="calendar-toolbar">
           ${calendarModeButton('week', '週表示')}
           ${calendarModeButton('month', '月表示')}
-          ${calendarModeButton('list', '日付別')}
+          ${calendarModeButton('list', '日別')}
         </div>
         ${calendarNavigationHtml()}
         ${calendarItems.length ? renderCalendarGrid(visibleItems) : ''}
@@ -2051,13 +2419,13 @@
     }
 
     function adminPreviewCard() {
-      if (!isAdminUser() || !adminOptions) return '';
+      if (!canUseAdminTools() || !adminOptions) return '';
       return `
         <section class="admin-tool-card">
           <p class="admin-tool-title">担当者プレビュー</p>
           <div class="form">
             <div class="field">
-              <label for="previewUserId">表示確認する利用者</label>
+              <label for="previewUserId">表示する利用者</label>
               <select id="previewUserId">${adminUserOptions(previewUserId || (currentUser && currentUser.userId) || '')}</select>
             </div>
             <div class="actions">
@@ -2070,7 +2438,7 @@
     }
 
     function adminSampleCard() {
-      if (!isAdminUser() || !adminOptions || isPreviewActive()) return '';
+      if (!canUseAdminTools() || !adminOptions || isPreviewActive()) return '';
       const selected = previewUserId || (currentUser && currentUser.userId) || '';
       return `
         <section class="admin-tool-card">
@@ -2090,7 +2458,7 @@
     }
 
     function adminCaseForm() {
-      if (!isAdminUser() || !adminOptions || isPreviewActive()) return '';
+      if (!canUseAdminTools() || !adminOptions || isPreviewActive()) return '';
       const caseTypes = adminOptions.caseTypes || [];
       const channels = adminOptions.channels || [];
       const dateOptions = optionList(DATE_FIELD_OPTIONS, 'coverageDate');
@@ -2168,12 +2536,12 @@
     }
 
     function adminMenuHtml() {
-      if (!isAdminUser() || !adminOptions) return '';
+      if (!canUseAdminTools() || !adminOptions) return '';
       const tools = [adminSampleCard(), adminPreviewCard()].filter(Boolean).join('');
       const toolsBlock = tools
         ? `
           <details class="admin-secondary">
-            <summary><span>検証・表示確認<small>TESTサンプルと担当者プレビュー</small></span></summary>
+            <summary><span>テスト表示<small>TESTサンプルと担当者プレビュー</small></span></summary>
             <div class="admin-secondary-body">${tools}</div>
           </details>
         `
@@ -2245,9 +2613,12 @@
       setActiveMenu('');
       document.querySelector('h1').textContent = data.case.title;
       activeCaseId = data.case.caseId;
-      el('detailView').innerHTML = previewNoticeHtml() + (data.tasks.length
-        ? data.tasks.map((task) => taskCard(task, { focus: task.taskId === data.focusTaskId })).join('')
-        : '<div class="empty">この案件の作業はありません。</div>');
+      detailCase = data.case;
+      detailTasks = data.tasks || [];
+      detailFocusTaskId = data.focusTaskId || '';
+      detailFilter = normalizeDetailFilter(detailFilter);
+      if (detailFocusTaskId) detailFilter = 'all';
+      renderDetailContent();
       hideLoadingOverlay();
     }
 
@@ -2296,7 +2667,7 @@
 
     function prefetchViewsAfterInitialLoad(initialView) {
       if (previewUserId || !currentUser || activeCaseId) return;
-      const views = ['cases', 'calendar', 'settings'].filter((view) => view !== initialView);
+      const views = ['cases', 'calendar'].filter((view) => view !== initialView);
       if (!views.length) return;
       debugLog('prefetch_queue', { views: views.join(',') });
       scheduleBackgroundTask(async () => {
@@ -2341,6 +2712,7 @@
       const id = String(taskId || '');
       return (todayTasks || []).find((task) => String(task.taskId || '') === id)
         || (calendarItems || []).find((task) => String(task.taskId || '') === id)
+        || (detailTasks || []).find((task) => String(task.taskId || '') === id)
         || null;
     }
 
@@ -2421,6 +2793,7 @@
         ? (todayTasks || []).filter((item) => String(item.taskId || '') !== String(taskId || ''))
         : replaceTaskInList(todayTasks, taskId, task);
       calendarItems = replaceTaskInList(calendarItems, taskId, task);
+      detailTasks = replaceTaskInList(detailTasks, taskId, task);
       updateHomeSummary();
       return task;
     }
@@ -2432,6 +2805,7 @@
       card.outerHTML = taskCard(task, {
         compact: card.classList.contains('task-compact'),
         focus: card.classList.contains('focus'),
+        hideCaseButton: !el('detailView').hidden,
       });
       return true;
     }
@@ -2485,12 +2859,48 @@
       resetLoadedViews();
       clearClientDashboardCache();
       if (visibleDetail) {
-        updateRenderedTaskCard(taskId, updatedTask);
+        renderDetailContent();
       } else {
         renderView(viewAtAction);
       }
-      showMessage(`${reopen ? '未完了に戻しました' : '完了にしました'}。最新情報は裏で確認しています。`, 'notice');
+      showMessage(`${reopen ? '未完了に戻しました' : '完了にしました'}。最新情報は裏で読み込みます。`, 'notice');
       refreshAfterTaskCompletionInBackground(taskId, detailCaseId, viewAtAction);
+    }
+
+    async function bulkUpdateDetailTasks(completed) {
+      if (isPreviewActive()) {
+        showMessage('担当者プレビュー中は更新できません。プレビューを解除してから操作してください。', 'notice');
+        return;
+      }
+      if (el('detailView').hidden || !activeCaseId) {
+        showMessage('案件ページを開いてから一括更新してください。', 'notice');
+        return;
+      }
+      const visibleTasks = filteredDetailTasks(detailTasks);
+      const targets = visibleTasks.filter((task) =>
+        !task.sample && task.completed !== completed
+      );
+      if (!targets.length) {
+        showMessage('一括更新できる工程はありません。', 'notice');
+        return;
+      }
+      showMessage('');
+      const viewAtAction = currentView;
+      const detailCaseId = activeCaseId;
+      const changedTaskIds = [];
+      for (const task of targets) {
+        const taskId = task.taskId;
+        const previousTask = findLocalTaskById(taskId);
+        const wasInToday = (todayTasks || []).some((item) => String(item.taskId || '') === String(taskId || ''));
+        const data = await api(completed ? 'completeTask' : 'reopenTask', { taskId, fast: true }, { timeoutMs: 12000 });
+        applyTaskCompletionLocally(taskId, data && data.task, completed, previousTask, wasInToday);
+        changedTaskIds.push(taskId);
+      }
+      resetLoadedViews();
+      clearClientDashboardCache();
+      renderDetailContent();
+      showMessage(`${targets.length}件を${completed ? '完了' : '未完了'}に更新しました。最新情報は裏で読み込みます。`, 'notice');
+      refreshAfterTaskCompletionInBackground(changedTaskIds[0] || '', detailCaseId, viewAtAction);
     }
 
     async function requestRegistration() {
@@ -2513,16 +2923,16 @@
         prefetchViewsAfterInitialLoad(DEFAULT_VIEW);
         return;
       }
-      setLoading('登録申請を確認しています。');
+      setLoading('登録申請を読み込み中です。');
       const identity = await api('whoami');
-      if (identity && identity.profile) setLineProfile(identity.profile, identity.active ? '登録済み' : '確認待ち');
-      showRegistration(identity, result && result.requested ? '申請を送信しました。管理者の確認をお待ちください。' : '');
+      if (identity && identity.profile) setLineProfile(identity.profile, identity.active ? '登録済み' : '有効化待ち');
+      showRegistration(identity, result && result.requested ? '申請を送信しました。管理者の有効化をお待ちください。' : '');
     }
 
     async function applyPreviewMode() {
       const select = el('previewUserId');
       previewUserId = select ? select.value : '';
-      setLoading('担当者表示を確認しています。');
+      setLoading('担当者表示を読み込み中です。');
       resetLoadedViews();
       await reloadData(currentView, { forceFresh: true });
       renderView(currentView);
@@ -2683,10 +3093,16 @@
           selectedCalendarDate = '';
           renderCalendar();
         }
+        else if (button.dataset.detailFilter) {
+          detailFilter = normalizeDetailFilter(button.dataset.detailFilter);
+          renderDetailContent();
+        }
         else if (button.dataset.view) await openView(button.dataset.view);
         else if (button.dataset.case) await renderDetail(button.dataset.case);
         else if (button.dataset.complete) await completeTask(button.dataset.complete, false);
         else if (button.dataset.reopen) await completeTask(button.dataset.reopen, true);
+        else if (button.dataset.bulkComplete) await bulkUpdateDetailTasks(true);
+        else if (button.dataset.bulkReopen) await bulkUpdateDetailTasks(false);
         else if (button.dataset.requestRegistration) await requestRegistration();
         else if (button.dataset.applyPreview) await applyPreviewMode();
         else if (button.dataset.clearPreview) await clearPreviewMode();
@@ -2721,14 +3137,14 @@
       await reloadData(DEFAULT_VIEW, { forceFresh: renderedFromClientCache });
       if (caseId || taskId) await renderDetail(caseId || '', taskId || '');
       else if (!renderedFromClientCache || currentView === DEFAULT_VIEW) renderView(DEFAULT_VIEW);
-      showMessage('デモモードで表示しています。LINE送信など外部連携は実行されません。', 'notice');
+      showMessage('デモモードで表示しています。外部通知は送信されません。', 'notice');
       if (!(caseId || taskId)) prefetchViewsAfterInitialLoad(DEFAULT_VIEW);
     }
 
     async function start() {
       try {
         debugLog('start');
-        setLoading('LIFF認証を確認しています。');
+        setLoading('LIFF認証中です。');
         if (demoMode) {
           await startDemoMode();
           return;
@@ -2745,7 +3161,7 @@
           ].join('\n'));
         }
         if (typeof liff === 'undefined') {
-          throw new Error('LIFF SDKを読み込めませんでした。LINEアプリ内で開き直してください。');
+          throw new Error('LIFF SDKを読み込めませんでした。通信環境を確認して開き直してください。');
         }
         debugLog('liff_init_start');
         await withTimeout(liff.init({ liffId: LIFF_ID }), 'LIFF初期化');
@@ -2754,14 +3170,9 @@
           isInClient: typeof liff.isInClient === 'function' ? liff.isInClient() : false,
         });
         if (!liff.isLoggedIn()) {
-          if (typeof liff.isInClient === 'function' && !liff.isInClient()) {
-            debugLog('external_browser_not_logged_in');
-            showMessage('LINEアプリ内のLIFF URLから開いてください。LINE DevelopersでスプシLIFF専用のEndpoint URLをこのURLに設定すると利用できます。', true);
-            el('todayView').innerHTML = '';
-            hideLoadingOverlay();
-            return;
-          }
-          debugLog('liff_login_redirect');
+          debugLog('liff_login_redirect', {
+            isInClient: typeof liff.isInClient === 'function' ? liff.isInClient() : false,
+          });
           liff.login({ redirectUri: location.href });
           return;
         }
@@ -2791,7 +3202,7 @@
               level: 'WARN',
               message: dashboardErr.message || String(dashboardErr),
             });
-            showMessage('前回表示を表示しています。最新情報の確認に時間がかかっています。', 'notice');
+            showMessage('前回表示を表示しています。最新情報の読み込みに時間がかかっています。', 'notice');
             return;
           }
           if (!shouldFallbackToIdentity(dashboardErr)) throw dashboardErr;
@@ -2800,10 +3211,10 @@
           });
         }
 
-        setLoading('LINE連携情報を確認しています。');
+        setLoading('LINE連携情報を読み込み中です。');
         const identity = await api('whoami');
         lastIdentity = identity || null;
-        if (identity && identity.profile) setLineProfile(identity.profile, identity.registered ? (identity.active ? '登録済み' : '確認待ち') : '未登録');
+        if (identity && identity.profile) setLineProfile(identity.profile, identity.registered ? (identity.active ? '登録済み' : '有効化待ち') : '未登録');
         if (!identity.registered) {
           debugLog('identity_unregistered', {
             lineUserId: identity.profile && identity.profile.lineUserId,
